@@ -10,10 +10,10 @@ edition = "2018"
 
 [dependencies]
 cranelift-entity = { path = "../../cranelift/entity", version = "0.77.0", features = ['enable-serde'] }
-serde = { version = "1.0.94", features = ["derive"] }
-thiserror = "1.0.4"
+serde = { version = "1.0.94", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.4", optional = true }
 wasmparser = { path = "../../../wasm-tools/crates/wasmparser", default-features = false } ### Theseus
 
 [features]
 default = ["std"]
-std = []
+std = ["thiserror"]
