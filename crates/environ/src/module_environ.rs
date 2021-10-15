@@ -9,12 +9,17 @@ use crate::{
     WasmFuncType, WasmResult,
 };
 use cranelift_entity::packed_option::ReservedValue;
-use std::borrow::Cow;
-use std::collections::{hash_map::Entry, HashMap, HashSet};
-use std::convert::{TryFrom, TryInto};
-use std::mem;
+use alloc::borrow::{Cow, ToOwned};
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::convert::{TryFrom, TryInto};
+use core::mem;
+use hashbrown::{hash_map::Entry, HashMap, HashSet};
+#[cfg(feature = "std")]
 use std::path::PathBuf;
-use std::sync::Arc;
 use wasmparser::Type as WasmType;
 use wasmparser::{
     Alias, DataKind, ElementItem, ElementKind, ExternalKind, FuncValidator, FunctionBody,
@@ -153,6 +158,7 @@ pub struct NameSection<'a> {
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct WasmFileInfo {
+    #[cfg(feature = "std")]
     pub path: Option<PathBuf>,
     pub code_section_offset: u64,
     pub imported_func_count: u32,
@@ -1190,7 +1196,11 @@ and for re-adding support for interface types you can see this issue:
         declared_imports: &[(&'data str, Option<&'data str>, EntityType)],
         exports: &[(&'data str, EntityType)],
     ) -> WasmResult<()> {
+        #[cfg(feature = "std")]
         let mut imports = indexmap::IndexMap::new();
+        #[cfg(not(feature = "std"))]
+        let mut imports = crate::IndexMap::with_hasher(hashbrown::hash_map::DefaultHashBuilder::new());
+        
         let mut instance_types = HashMap::new();
         for (module, field, ty) in declared_imports {
             match field {

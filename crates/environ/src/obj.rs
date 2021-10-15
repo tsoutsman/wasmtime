@@ -2,6 +2,8 @@
 //! serialization and intermediate format for compiled modules.
 
 use crate::{EntityRef, FuncIndex, SignatureIndex};
+use alloc::format;
+use alloc::string::String;
 
 const FUNCTION_PREFIX: &str = "_wasm_function_";
 const TRAMPOLINE_PREFIX: &str = "_trampoline_";

@@ -1,11 +1,14 @@
 //! Data structures for representing decoded wasm modules.
 
 use crate::{EntityRef, ModuleTranslation, PrimaryMap, Tunables, WASM_PAGE_SIZE};
-use indexmap::IndexMap;
+use crate::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::convert::TryFrom;
-use std::ops::Range;
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::convert::TryFrom;
+use core::ops::Range;
 use wasmtime_types::*;
 
 /// Implemenation styles for WebAssembly linear memory.
@@ -36,10 +39,10 @@ impl MemoryStyle {
         } else {
             crate::WASM32_MAX_PAGES
         };
-        let maximum = std::cmp::min(
+        let maximum = core::cmp::min(
             memory.maximum.unwrap_or(absolute_max_pages),
             if tunables.static_memory_bound_is_maximum {
-                std::cmp::min(tunables.static_memory_bound, absolute_max_pages)
+                core::cmp::min(tunables.static_memory_bound, absolute_max_pages)
             } else {
                 absolute_max_pages
             },
@@ -241,10 +244,10 @@ impl ModuleTranslation<'_> {
                 // all zeros.
                 let page = contents
                     .entry(page_index)
-                    .or_insert_with(|| vec![0; page_size as usize]);
+                    .or_insert_with(|| alloc::vec![0; page_size as usize]);
                 let page = &mut page[page_offset..];
 
-                let len = std::cmp::min(data.len(), page.len());
+                let len = core::cmp::min(data.len(), page.len());
                 page[..len].copy_from_slice(&data[..len]);
 
                 page_index += 1;

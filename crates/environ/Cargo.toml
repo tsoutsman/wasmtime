@@ -11,19 +11,23 @@ keywords = ["webassembly", "wasm"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0"
+anyhow = { version = "1.0", default-features = false }
 cranelift-entity = { path = "../../cranelift/entity", version = "0.77.0" }
-wasmtime-types = { path = "../types", version = "0.30.0" }
-wasmparser = "0.81"
+wasmtime-types = { path = "../types", default-features = false, version = "0.30.0" }
+wasmparser = { path = "../../../wasm-tools/crates/wasmparser", default-features = false, version = "0.81" }
 indexmap = { version = "1.0.2", features = ["serde-1"] }
-thiserror = "1.0.4"
-serde = { version = "1.0.94", features = ["derive"] }
+thiserror = { version = "1.0.4", optional = true }
+serde = { version = "1.0.94", default-features = false, features = ["derive"] }
 log = { version = "0.4.8", default-features = false }
-more-asserts = "0.2.1"
 cfg-if = "1.0"
 gimli = { version = "0.25.0", default-features = false, features = ['read'] }
-object = { version = "0.26.0", default-features = false, features = ['read_core', 'write_core', 'elf'] }
+object = { path = "../../../object", version = "0.26.0", default-features = false, features = ['read_core', 'write_core', 'elf'] }
 target-lexicon = "0.12"
+hashbrown = { version = "0.9.1", features = ["ahash"], default-features = false }
 
 [badges]
 maintenance = { status = "actively-developed" }
+
+[features]
+default = ["std"]
+std = ["anyhow/std", "thiserror", "wasmparser/std", "wasmtime-types/std"] ## indexmap?

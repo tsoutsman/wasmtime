@@ -1,10 +1,7 @@
 //! Internal dependency of Wasmtime and Cranelift that defines types for
 //! WebAssembly.
 
-#![no_std]
-
-#[cfg(feature = "std")]
-extern crate std;
+#![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
 

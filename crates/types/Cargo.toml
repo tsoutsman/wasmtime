@@ -16,4 +16,4 @@ wasmparser = { path = "../../../wasm-tools/crates/wasmparser", default-features 
 
 [features]
 default = ["std"]
-std = ["thiserror"]
+std = ["wasmparser/std", "thiserror"]

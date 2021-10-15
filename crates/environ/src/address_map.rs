@@ -4,8 +4,9 @@
 use object::write::{Object, StandardSegment};
 use object::{Bytes, LittleEndian, SectionKind, U32Bytes};
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
-use std::ops::Range;
+use core::convert::TryFrom;
+use core::ops::Range;
+use alloc::vec::Vec;
 
 /// Single source location to generated address mapping.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

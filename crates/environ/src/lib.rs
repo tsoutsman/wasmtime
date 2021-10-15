@@ -23,6 +23,15 @@
     )
 )]
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+type IndexMap<K, V> = indexmap::IndexMap<K, V>;
+#[cfg(not(feature = "std"))]
+type IndexMap<K, V> = indexmap::IndexMap<K, V, hashbrown::hash_map::DefaultHashBuilder>;
+
 mod address_map;
 mod builtin;
 mod compilation;

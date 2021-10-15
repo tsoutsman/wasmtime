@@ -1,7 +1,8 @@
 use object::write::{Object, StandardSegment};
 use object::{Bytes, LittleEndian, SectionKind, U32Bytes};
-use std::convert::TryFrom;
-use std::ops::Range;
+use core::convert::TryFrom;
+use core::ops::Range;
+use alloc::vec::Vec;
 
 /// A helper structure to build the custom-encoded section of a wasmtime
 /// compilation image which encodes trap information.

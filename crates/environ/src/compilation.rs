@@ -9,10 +9,15 @@ use anyhow::Result;
 use object::write::Object;
 use object::{Architecture, BinaryFormat};
 use serde::{Deserialize, Serialize};
-use std::any::Any;
-use std::borrow::Cow;
-use std::collections::BTreeMap;
-use std::fmt;
+use core::any::Any;
+use core::fmt;
+use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+#[cfg(feature = "std")]
 use thiserror::Error;
 
 /// Information about a function, such as trap information, address map,
@@ -56,18 +61,19 @@ pub struct StackMapInformation {
 }
 
 /// An error while compiling WebAssembly to machine code.
-#[derive(Error, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "std", derive(Error))]
 pub enum CompileError {
     /// A wasm translation error occured.
-    #[error("WebAssembly translation error")]
-    Wasm(#[from] WasmError),
+    #[cfg_attr(feature = "std", error("WebAssembly translation error"))]
+    Wasm(#[cfg_attr(feature = "std", from)] WasmError),
 
     /// A compilation error occured.
-    #[error("Compilation error: {0}")]
+    #[cfg_attr(feature = "std", error("Compilation error: {0}"))]
     Codegen(String),
 
     /// A compilation error occured.
-    #[error("Debug info is not supported with this configuration")]
+    #[cfg_attr(feature = "std", error("Debug info is not supported with this configuration"))]
     DebugInfoNotSupported,
 }
 

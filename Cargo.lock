@@ -151,7 +151,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "miniz_oxide",
- "object",
+ "object 0.26.0",
  "rustc-demangle",
 ]
 
@@ -690,7 +690,7 @@ dependencies = [
  "cranelift-frontend",
  "cranelift-module",
  "log",
- "object",
+ "object 0.26.0",
  "target-lexicon",
 ]
 
@@ -1585,9 +1585,9 @@ checksum = "4facc753ae494aeb6e3c22f839b158aebd4f9270f55cd3c79906c45476c47ab4"
 
 [[package]]
 name = "memchr"
-version = "2.4.0"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b16bd47d9e329435e309c58469fe0791c2d0d1ba96ec0954152a5ae2b04387dc"
+checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 
 [[package]]
 name = "memmap2"
@@ -1779,6 +1779,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c55827317fb4c08822499848a14237d2874d6f139828893017237e7ab93eb386"
 dependencies = [
  "crc32fast",
+ "indexmap",
+ "memchr",
+]
+
+[[package]]
+name = "object"
+version = "0.26.2"
+dependencies = [
+ "crc32fast",
+ "hashbrown",
  "indexmap",
  "memchr",
 ]
@@ -3377,7 +3387,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "object",
+ "object 0.26.0",
  "paste",
  "psm",
  "rayon",
@@ -3477,7 +3487,7 @@ dependencies = [
  "memchr",
  "more-asserts",
  "num_cpus",
- "object",
+ "object 0.26.0",
  "pretty_env_logger",
  "rayon",
  "rsix",
@@ -3517,7 +3527,7 @@ dependencies = [
  "gimli",
  "log",
  "more-asserts",
- "object",
+ "object 0.26.0",
  "target-lexicon",
  "thiserror",
  "wasmparser 0.81.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3532,14 +3542,14 @@ dependencies = [
  "cfg-if 1.0.0",
  "cranelift-entity",
  "gimli",
+ "hashbrown",
  "indexmap",
  "log",
- "more-asserts",
- "object",
+ "object 0.26.2",
  "serde",
  "target-lexicon",
  "thiserror",
- "wasmparser 0.81.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasmparser 0.81.0",
  "wasmtime-types",
 ]
 
@@ -3604,7 +3614,7 @@ dependencies = [
  "ittapi-rs",
  "log",
  "more-asserts",
- "object",
+ "object 0.26.0",
  "region",
  "rsix",
  "serde",
