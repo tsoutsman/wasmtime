@@ -50,7 +50,7 @@ rsix = "0.23.0"
 [dev-dependencies]
 env_logger = "0.8.1"
 filecheck = "0.5.0"
-more-asserts = "0.2.1"
+more-asserts = "0.2.2"
 tempfile = "3.1.0"
 test-programs = { path = "crates/test-programs" }
 wasmtime-fuzzing = { path = "crates/fuzzing" }
