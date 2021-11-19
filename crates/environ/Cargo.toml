@@ -14,7 +14,7 @@ edition = "2018"
 anyhow = { version = "1.0", default-features = false }
 cranelift-entity = { path = "../../cranelift/entity", version = "0.77.0" }
 wasmtime-types = { path = "../types", default-features = false, version = "0.30.0" }
-wasmparser = { path = "../../../wasm-tools/crates/wasmparser", default-features = false, version = "0.81" }
+wasmparser = { version = "0.81", default-features = false }
 indexmap = { version = "1.0.2", features = ["serde-1"] }
 thiserror = { version = "1.0.4", optional = true }
 serde = { version = "1.0.94", default-features = false, features = ["derive"] }
@@ -22,9 +22,13 @@ log = { version = "0.4.8", default-features = false }
 more-asserts = "0.2.2"
 cfg-if = "1.0"
 gimli = { version = "0.25.0", default-features = false, features = ['read'] }
-object = { path = "../../../object", version = "0.26.0", default-features = false, features = ['read_core', 'write_core', 'elf'] }
+object = { version = "0.26.0", default-features = false, features = ['read_core', 'write_core', 'elf'] }
 target-lexicon = "0.12"
 hashbrown = { version = "0.9.1", features = ["ahash"], default-features = false }
+
+[patch.crates-io]
+wasmparser = { path = "../../../../libs/wasm-tools/crates/wasmparser" }
+object = { path = "../../../../libs/object" }
 
 [badges]
 maintenance = { status = "actively-developed" }

@@ -12,7 +12,10 @@ edition = "2018"
 cranelift-entity = { path = "../../cranelift/entity", version = "0.77.0", features = ['enable-serde'] }
 serde = { version = "1.0.94", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.4", optional = true }
-wasmparser = { path = "../../../wasm-tools/crates/wasmparser", default-features = false } ### Theseus
+wasmparser = { version = "0.81", default-features = false }
+
+[patch.crates-io]
+wasmparser = { path = "../../../../libs/wasm-tools/crates/wasmparser" } ### Theseus
 
 [features]
 default = ["std"]
