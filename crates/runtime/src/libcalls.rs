@@ -62,26 +62,42 @@ use crate::table::{Table, TableElementType};
 use crate::traphandlers::{raise_lib_trap, Trap};
 use crate::vmcontext::{VMCallerCheckedAnyfunc, VMContext};
 use backtrace::Backtrace;
-use std::mem;
-use std::ptr::{self, NonNull};
+use core::mem;
+use core::ptr::{self, NonNull};
 use wasmtime_environ::{DataIndex, ElemIndex, GlobalIndex, MemoryIndex, TableIndex, TrapCode};
+use ::alloc::boxed::Box;
 
 const TOINT_32: f32 = 1.0 / f32::EPSILON;
 const TOINT_64: f64 = 1.0 / f64::EPSILON;
 
 /// Implementation of f32.ceil
 pub extern "C" fn wasmtime_f32_ceil(x: f32) -> f32 {
-    x.ceil()
+    #[cfg(feature = "std")] {
+        x.ceil()
+    }
+    #[cfg(not(feature = "std"))] {
+        unsafe { core::intrinsics::ceilf32(x) }
+    }
 }
 
 /// Implementation of f32.floor
 pub extern "C" fn wasmtime_f32_floor(x: f32) -> f32 {
-    x.floor()
+    #[cfg(feature = "std")] {
+        x.floor()
+    }
+    #[cfg(not(feature = "std"))] {
+        unsafe { core::intrinsics::floorf32(x) }
+    }
 }
 
 /// Implementation of f32.trunc
 pub extern "C" fn wasmtime_f32_trunc(x: f32) -> f32 {
-    x.trunc()
+    #[cfg(feature = "std")] {
+        x.floor()
+    }
+    #[cfg(not(feature = "std"))] {
+        unsafe { core::intrinsics::truncf32(x) }
+    }
 }
 
 /// Implementation of f32.nearest
@@ -105,7 +121,22 @@ pub extern "C" fn wasmtime_f32_nearest(x: f32) -> f32 {
         }
         x
     } else {
-        (x.abs() + TOINT_32 - TOINT_32).copysign(x)
+        // Original code: `(x.abs() + TOINT_32 - TOINT_32).copysign(x)`
+        let abs_val = {
+            #[cfg(feature = "std")] {
+                x.abs()
+            }
+            #[cfg(not(feature = "std"))] {
+                unsafe { core::intrinsics::fabsf32(x) }
+            }
+        };
+        let conv = abs_val + TOINT_32 - TOINT_32;
+        #[cfg(feature = "std")] {
+            conv.copysign(x)
+        }
+        #[cfg(not(feature = "std"))] {
+            unsafe { core::intrinsics::copysignf32(conv, x) }
+        }
     }
 }
 
@@ -146,17 +177,32 @@ pub extern "C" fn wasmtime_i64_sshr(x: i64, y: i64) -> i64 {
 
 /// Implementation of f64.ceil
 pub extern "C" fn wasmtime_f64_ceil(x: f64) -> f64 {
-    x.ceil()
+    #[cfg(feature = "std")] {
+        x.ceil()
+    }
+    #[cfg(not(feature = "std"))] {
+        unsafe { core::intrinsics::ceilf64(x) }
+    }
 }
 
 /// Implementation of f64.floor
 pub extern "C" fn wasmtime_f64_floor(x: f64) -> f64 {
-    x.floor()
+    #[cfg(feature = "std")] {
+        x.floor()
+    }
+    #[cfg(not(feature = "std"))] {
+        unsafe { core::intrinsics::floorf64(x) }
+    }
 }
 
 /// Implementation of f64.trunc
 pub extern "C" fn wasmtime_f64_trunc(x: f64) -> f64 {
-    x.trunc()
+    #[cfg(feature = "std")] {
+        x.trunc()
+    }
+    #[cfg(not(feature = "std"))] {
+        unsafe { core::intrinsics::truncf64(x) }
+    }
 }
 
 /// Implementation of f64.nearest
@@ -180,7 +226,22 @@ pub extern "C" fn wasmtime_f64_nearest(x: f64) -> f64 {
         }
         x
     } else {
-        (x.abs() + TOINT_64 - TOINT_64).copysign(x)
+        // Original code: `(x.abs() + TOINT_64 - TOINT_64).copysign(x)`
+        let abs_val = {
+            #[cfg(feature = "std")] {
+                x.abs()
+            }
+            #[cfg(not(feature = "std"))] {
+                unsafe { core::intrinsics::fabsf64(x) }
+            }
+        };
+        let conv = abs_val + TOINT_64 - TOINT_64;
+        #[cfg(feature = "std")] {
+            conv.copysign(x)
+        }
+        #[cfg(not(feature = "std"))] {
+            unsafe { core::intrinsics::copysignf64(conv, x) }
+        }
     }
 }
 
@@ -438,9 +499,9 @@ pub unsafe extern "C" fn wasmtime_externref_global_set(
 
 #[derive(Debug)]
 struct Unimplemented(&'static str);
-impl std::error::Error for Unimplemented {}
-impl std::fmt::Display for Unimplemented {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+impl crate::Error for Unimplemented {}
+impl core::fmt::Display for Unimplemented {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::result::Result<(), core::fmt::Error> {
         write!(f, "unimplemented: {}", self.0)
     }
 }

@@ -4,12 +4,26 @@
 use anyhow::anyhow;
 use anyhow::{Context, Result};
 use more_asserts::assert_le;
-use std::convert::TryFrom;
+use core::convert::TryFrom;
+use core::ops::Range;
+use core::ptr;
+use core::slice;
+
+#[cfg(not(feature = "std"))]
+use ::alloc::{format, vec::Vec};
+
+#[cfg(feature = "std")]
 use std::fs::File;
-use std::ops::Range;
+#[cfg(feature = "std")]
 use std::path::Path;
-use std::ptr;
-use std::slice;
+
+#[cfg(target_os = "theseus")]
+// use theseus_file::File; // TODO: this
+#[derive(Debug)]
+pub struct File; 
+#[cfg(target_os = "theseus")]
+use theseus_path_std::Path;
+
 
 /// A simple struct consisting of a page-aligned pointer to page-aligned
 /// and initially-zeroed memory and a length.
@@ -22,6 +36,8 @@ pub struct Mmap {
     ptr: usize,
     len: usize,
     file: Option<File>,
+    #[cfg(target_os = "theseus")]
+    mapping: theseus_memory::MappedPages,
 }
 
 impl Mmap {
@@ -35,12 +51,14 @@ impl Mmap {
             ptr: empty.as_ptr() as usize,
             len: 0,
             file: None,
+            #[cfg(target_os = "theseus")]
+            mapping: theseus_memory::MappedPages::empty(),
         }
     }
 
     /// Create a new `Mmap` pointing to at least `size` bytes of page-aligned accessible memory.
     pub fn with_at_least(size: usize) -> Result<Self> {
-        let rounded_size = region::page::ceil(size);
+        let rounded_size = region::page::ceil(size as *const usize) as usize;
         Self::accessible_reserved(rounded_size, rounded_size)
     }
 
@@ -149,12 +167,44 @@ impl Mmap {
                 Ok(ret)
             }
         }
+
+        #[cfg(target_os = "theseus")]
+        {
+            todo!("Mmap::from_file() is unimplemented for Theseus");
+        }
+
     }
 
     /// Create a new `Mmap` pointing to `accessible_size` bytes of page-aligned accessible memory,
     /// within a reserved mapping of `mapping_size` bytes. `accessible_size` and `mapping_size`
     /// must be native page-size multiples.
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "theseus")]
+    pub fn accessible_reserved(accessible_size: usize, mapping_size: usize) -> Result<Self> {
+        let page_size = region::page::size();
+        assert_le!(accessible_size, mapping_size);
+        assert_eq!(mapping_size & (page_size - 1), 0);
+        assert_eq!(accessible_size & (page_size - 1), 0);
+
+        if mapping_size == 0 {
+            return Ok(Self::new());
+        }
+
+        // Theseus doesn't do demand paging nor split mappings into multiple regions with different permissions,
+        // so we just reserve the entire `mapping_size` now as read-write.
+        let mp = theseus_memory::create_mapping(mapping_size, theseus_memory::EntryFlags::WRITABLE)
+            .map_err(anyhow::Error::msg)?;
+        Ok(Self {
+            ptr: mp.start_address().value(),
+            len: mapping_size,
+            file: None,
+            mapping: mp,
+        })
+    }
+
+    /// Create a new `Mmap` pointing to `accessible_size` bytes of page-aligned accessible memory,
+    /// within a reserved mapping of `mapping_size` bytes. `accessible_size` and `mapping_size`
+    /// must be native page-size multiples.
+    #[cfg(not(any(target_os = "theseus", target_os = "windows")))]
     pub fn accessible_reserved(accessible_size: usize, mapping_size: usize) -> Result<Self> {
         let page_size = region::page::size();
         assert_le!(accessible_size, mapping_size);
@@ -286,7 +336,8 @@ impl Mmap {
         // Commit the accessible size.
         let ptr = self.ptr as *const u8;
         unsafe {
-            region::protect(ptr.add(start), len, region::Protection::READ_WRITE)?;
+            region::protect(ptr.add(start), len, region::Protection::READ_WRITE)
+                .map_err(anyhow::Error::msg)?;
         }
 
         Ok(())
@@ -397,7 +448,8 @@ impl Mmap {
 
         // If we're not on Windows or if we're on Windows with an anonymous
         // mapping then we can use the `region` crate.
-        region::protect(base, len, region::Protection::READ_WRITE)?;
+        region::protect(base, len, region::Protection::READ_WRITE)
+            .map_err(anyhow::Error::msg)?;
         Ok(())
     }
 
@@ -415,16 +467,21 @@ impl Mmap {
             self.as_ptr().add(range.start),
             range.end - range.start,
             region::Protection::READ_EXECUTE,
-        )?;
+        ).map_err(anyhow::Error::msg)?;
         Ok(())
     }
 }
 
 impl Drop for Mmap {
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "theseus")]
+    fn drop(&mut self) {
+        // do nothing, each field will be dropped and the `MappedPages` auto-unmapped
+    }
+
+    #[cfg(not(any(target_os = "theseus", target_os = "windows")))]
     fn drop(&mut self) {
         if self.len != 0 {
-            unsafe { rsix::io::munmap(self.ptr as *mut std::ffi::c_void, self.len) }
+            unsafe { rsix::io::munmap(self.ptr as *mut core::ffi::c_void, self.len) }
                 .expect("munmap failed");
         }
     }

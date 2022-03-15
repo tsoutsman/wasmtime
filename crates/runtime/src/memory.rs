@@ -2,12 +2,15 @@
 //!
 //! `RuntimeLinearMemory` is to WebAssembly linear memories what `Table` is to WebAssembly tables.
 
+#[cfg(not(feature = "std"))]
+use ::alloc::{boxed::Box, format}; // needed for anyhow macros
+
 use crate::mmap::Mmap;
 use crate::vmcontext::VMMemoryDefinition;
 use crate::ResourceLimiter;
 use anyhow::{bail, format_err, Error, Result};
 use more_asserts::{assert_ge, assert_le};
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 use wasmtime_environ::{MemoryPlan, MemoryStyle, WASM32_MAX_PAGES, WASM64_MAX_PAGES};
 
 const WASM_PAGE_SIZE: usize = wasmtime_environ::WASM_PAGE_SIZE as usize;

@@ -15,14 +15,14 @@ use crate::{ExportFunction, ExportGlobal, ExportMemory, ExportTable, Store};
 use anyhow::Error;
 use memoffset::offset_of;
 use more_asserts::assert_lt;
-use std::alloc::Layout;
-use std::any::Any;
-use std::convert::TryFrom;
-use std::hash::Hash;
-use std::ops::Range;
-use std::ptr::NonNull;
-use std::sync::Arc;
-use std::{mem, ptr, slice};
+use ::alloc::alloc::Layout;
+use core::any::Any;
+use core::convert::TryFrom;
+use core::hash::Hash;
+use core::ops::Range;
+use core::ptr::NonNull;
+use ::alloc::{boxed::Box, string::String, sync::Arc};
+use core::{mem, ptr, slice};
 use wasmtime_environ::{
     packed_option::ReservedValue, DataIndex, DefinedGlobalIndex, DefinedMemoryIndex,
     DefinedTableIndex, ElemIndex, EntityIndex, EntityRef, EntitySet, FuncIndex, GlobalIndex,

@@ -121,3 +121,9 @@ harness = false
 [[bench]]
 name = "thread_eager_init"
 harness = false
+
+[patch.crates-io]
+### Theseus-specific patches. 
+### TODO: this can be removed or optionally moved to the top-level Cargo.toml in Theseus.
+wasmparser = { path = "../../libs/wasm-tools/crates/wasmparser" }
+object = { path = "../../libs/object" }

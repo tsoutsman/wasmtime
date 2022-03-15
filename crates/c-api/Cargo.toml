@@ -19,7 +19,7 @@ doctest = false
 [dependencies]
 env_logger = "0.8"
 anyhow = "1.0"
-once_cell = "1.3"
+once_cell = { version = "1.3", default-features = false }
 wasmtime = { path = "../wasmtime", default-features = false, features = ['cranelift'] }
 wasmtime-c-api-macros = { path = "macros" }
 

@@ -20,7 +20,18 @@
     )
 )]
 
+#![cfg_attr(not(feature = "std"), no_std, feature(core_intrinsics))]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+#[cfg(feature = "std")]
 use std::error::Error;
+#[cfg(not(feature = "std"))]
+use core2::error::Error;
+
+#[cfg(not(feature = "std"))]
+use ::alloc::boxed::Box;
 
 mod export;
 mod externref;

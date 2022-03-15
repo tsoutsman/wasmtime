@@ -2,12 +2,15 @@
 //!
 //! `Table` is to WebAssembly tables what `LinearMemory` is to WebAssembly linear memories.
 
+#[cfg(not(feature = "std"))]
+use ::alloc::{vec, vec::Vec, format};
+
 use crate::vmcontext::{VMCallerCheckedAnyfunc, VMTableDefinition};
 use crate::{ResourceLimiter, Trap, VMExternRef};
 use anyhow::{bail, Result};
-use std::convert::{TryFrom, TryInto};
-use std::ops::Range;
-use std::ptr;
+use core::convert::{TryFrom, TryInto};
+use core::ops::Range;
+use core::ptr;
 use wasmtime_environ::{TablePlan, TrapCode, WasmType};
 
 /// An element going into or coming out of a table.

@@ -4,7 +4,7 @@ use crate::instance::InstanceHandle;
 use crate::vmcontext::VMContext;
 use wasmtime_environ::{EntityRef, MemoryIndex};
 
-static mut VMCTX_AND_MEMORY: (*mut VMContext, usize) = (std::ptr::null_mut(), 0);
+static mut VMCTX_AND_MEMORY: (*mut VMContext, usize) = (core::ptr::null_mut(), 0);
 
 #[no_mangle]
 pub unsafe extern "C" fn resolve_vmctx_memory(ptr: usize) -> *const u8 {
@@ -20,7 +20,7 @@ pub unsafe extern "C" fn resolve_vmctx_memory(ptr: usize) -> *const u8 {
 
 #[no_mangle]
 pub unsafe extern "C" fn resolve_vmctx_memory_ptr(p: *const u32) -> *const u8 {
-    let ptr = std::ptr::read(p);
+    let ptr = core::ptr::read(p);
     assert!(
         !VMCTX_AND_MEMORY.0.is_null(),
         "must call `__vmctx->set()` before resolving Wasm pointers"
@@ -46,8 +46,8 @@ pub unsafe extern "C" fn set_vmctx_memory(vmctx_ptr: *mut VMContext) {
 // `pub extern "C"`, see rust-lang/rust#25057.
 pub fn ensure_exported() {
     unsafe {
-        std::ptr::read_volatile(resolve_vmctx_memory_ptr as *const u8);
-        std::ptr::read_volatile(set_vmctx_memory as *const u8);
-        std::ptr::read_volatile(resolve_vmctx_memory as *const u8);
+        core::ptr::read_volatile(resolve_vmctx_memory_ptr as *const u8);
+        core::ptr::read_volatile(set_vmctx_memory as *const u8);
+        core::ptr::read_volatile(resolve_vmctx_memory as *const u8);
     }
 }

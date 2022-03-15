@@ -14,11 +14,17 @@ use super::{
 };
 use crate::{instance::Instance, Memory, Mmap, Table, VMContext};
 use anyhow::{anyhow, bail, Context, Result};
-use rand::Rng;
-use std::convert::TryFrom;
-use std::marker;
-use std::mem;
-use std::sync::{Arc, Mutex};
+use rand::{Rng, SeedableRng};
+use core::convert::TryFrom;
+use core::marker;
+use core::mem;
+use ::alloc::{boxed::Box, format, vec::Vec, sync::Arc};
+
+#[cfg(not(target_os = "theseus"))]
+use std::sync::Mutex;
+#[cfg(target_os = "theseus")]
+use mutex_sleep::MutexSleep as Mutex;
+
 use wasmtime_environ::{
     EntitySet, HostPtr, MemoryStyle, Module, PrimaryMap, Tunables, VMOffsets, VMOffsetsFields,
     WASM_PAGE_SIZE,
@@ -35,6 +41,9 @@ cfg_if::cfg_if! {
     } else if #[cfg(target_os = "linux")] {
         mod linux;
         use linux as imp;
+    } else if #[cfg(target_os = "theseus")] {
+        mod theseus;
+        use theseus as imp;
     } else {
         mod unix;
         use unix as imp;
@@ -257,7 +266,10 @@ impl PoolingAllocationStrategy {
 
         match self {
             Self::NextAvailable => free_count - 1,
+            #[cfg(feature = "std")]
             Self::Random => rand::thread_rng().gen_range(0..free_count),
+            #[cfg(not(feature = "std"))]
+            Self::Random => rand::rngs::SmallRng::seed_from_u64(0xdeadbeef12345678).gen_range(0..free_count)
         }
     }
 }
@@ -354,7 +366,7 @@ impl InstancePool {
             let instance = self.instance(index);
 
             // Write a default instance with preallocated memory/table map storage to the ptr
-            std::ptr::write(
+            core::ptr::write(
                 instance as _,
                 Instance {
                     module: self.empty_module.clone(),
@@ -382,7 +394,7 @@ impl InstancePool {
 
         instance.module = req.module.clone();
         instance.offsets = VMOffsets::new(HostPtr, instance.module.as_ref());
-        instance.host_state = std::mem::replace(&mut req.host_state, Box::new(()));
+        instance.host_state = core::mem::replace(&mut req.host_state, Box::new(()));
         instance.wasm_data = &*req.wasm_data;
 
         let mut limiter = req.store.and_then(|s| (*s).limiter());
@@ -513,7 +525,7 @@ impl InstancePool {
             (&module.memory_plans.values().as_slice()[module.num_imported_memories..]).iter()
         {
             let memory = unsafe {
-                std::slice::from_raw_parts_mut(
+                core::slice::from_raw_parts_mut(
                     memories.next().unwrap(),
                     (max_pages as usize) * (WASM_PAGE_SIZE as usize),
                 )
@@ -553,7 +565,7 @@ impl InstancePool {
             )
             .map_err(InstantiationError::Resource)?;
 
-            let table = unsafe { std::slice::from_raw_parts_mut(base, max_elements as usize) };
+            let table = unsafe { core::slice::from_raw_parts_mut(base, max_elements as usize) };
             instance.tables.push(
                 Table::new_static(plan, table, borrow_limiter(&mut limiter))
                     .map_err(InstantiationError::Resource)?,
@@ -574,7 +586,7 @@ impl Drop for InstancePool {
         unsafe {
             for i in 0..self.max_instances {
                 let ptr = self.mapping.as_mut_ptr().add(i * self.instance_size) as *mut Instance;
-                std::ptr::drop_in_place(ptr);
+                core::ptr::drop_in_place(ptr);
             }
         }
     }

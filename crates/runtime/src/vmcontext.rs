@@ -3,12 +3,12 @@
 
 use crate::externref::VMExternRef;
 use crate::instance::Instance;
-use std::any::Any;
-use std::cell::UnsafeCell;
-use std::marker;
-use std::ptr::NonNull;
-use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
-use std::u32;
+use core::any::Any;
+use core::cell::UnsafeCell;
+use core::marker;
+use core::ptr::NonNull;
+use core::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+use core::u32;
 use wasmtime_environ::BuiltinFunctionIndex;
 
 /// An imported function.

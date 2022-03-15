@@ -14,9 +14,6 @@ serde = { version = "1.0.94", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.4", optional = true }
 wasmparser = { version = "0.81", default-features = false }
 
-[patch.crates-io]
-wasmparser = { path = "../../../../libs/wasm-tools/crates/wasmparser" } ### Theseus
-
 [features]
 default = ["std"]
 std = ["wasmparser/std", "thiserror"]

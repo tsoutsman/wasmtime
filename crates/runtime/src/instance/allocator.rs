@@ -9,19 +9,25 @@ use crate::vmcontext::{
 };
 use crate::Store;
 use anyhow::Result;
-use std::alloc;
-use std::any::Any;
-use std::convert::TryFrom;
-use std::marker;
-use std::ptr::{self, NonNull};
-use std::slice;
-use std::sync::Arc;
+use ::alloc::{alloc, borrow::ToOwned};
+use core::any::Any;
+use core::convert::TryFrom;
+use core::marker;
+use core::ptr::{self, NonNull};
+use core::slice;
+use ::alloc::{boxed::Box, string::String, sync::Arc};
+#[cfg(feature = "std")]
 use thiserror::Error;
+#[cfg(target_os = "theseus")]
+use thiserror_core2::Error;
 use wasmtime_environ::{
     DefinedFuncIndex, DefinedMemoryIndex, DefinedTableIndex, EntityRef, EntitySet, FunctionInfo,
     GlobalInit, HostPtr, MemoryInitialization, MemoryInitializer, Module, ModuleType, PrimaryMap,
     SignatureIndex, TableInitializer, TrapCode, VMOffsets, WasmType, WASM_PAGE_SIZE,
 };
+
+#[cfg(target_os = "theseus")]
+use core2;
 
 mod pooling;
 
@@ -660,7 +666,7 @@ unsafe impl InstanceAllocator for OnDemandInstanceAllocator {
         let memories = self.create_memories(&req.module, borrow_limiter(&mut limiter))?;
         let tables = Self::create_tables(&req.module, borrow_limiter(&mut limiter))?;
 
-        let host_state = std::mem::replace(&mut req.host_state, Box::new(()));
+        let host_state = core::mem::replace(&mut req.host_state, Box::new(()));
 
         let mut handle = {
             let instance = Instance {

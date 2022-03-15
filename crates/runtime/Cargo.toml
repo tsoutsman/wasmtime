@@ -11,26 +11,48 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 edition = "2018"
 
 [dependencies]
-wasmtime-environ = { path = "../environ", version = "0.30.0" }
+wasmtime-environ = { path = "../environ", version = "0.30.0", default-features = false }
 wasmtime-fiber = { path = "../fiber", version = "0.30.0", optional = true }
-region = "2.1.0"
-libc = { version = "0.2.82", default-features = false }
+region = "3.0.0"
+libc = { version = "0.2", default-features = false }
 log = "0.4.8"
 memoffset = "0.6.0"
 indexmap = "1.0.2"
-thiserror = "1.0.4"
-more-asserts = "0.2.1"
+more-asserts = "0.2.2"
 cfg-if = "1.0"
-backtrace = "0.3.61"
-lazy_static = "1.3.0"
-rand = "0.8.3"
-anyhow = "1.0.38"
+backtrace = { version = "0.3.61", default-features = false }
+anyhow = { version = "1.0.38", default-features = false }
+
+###
+### NOTE: we *should* be able to include these dependencies here for non-Theseus builds
+###       but I can't get cargo to build it with the correct features if these are here.
+###       This is likely a bug in cargo's target-specific feature resolution. (?)
+###       Thus, I've commented them out currently, which means that non-Theseus builds are broken.
+###
+# [target.'cfg(not(target_os = "theseus"))'.dependencies]
+# thiserror = "1.0.2"
+# lazy_static = "1.4.0"
+# rand = "0.8.3"
+
+[target.'cfg(target_os = "theseus")'.dependencies]
+hashbrown = { version = "0.11.2", features = ["ahash"], default-features = false }
+# The `thiserror_core2` crate doesn't actually specify no_std, so we patch it in our top-level Cargo.toml.
+thiserror_core2 = { version = "2.0.0", default-features = false }
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+rand = { version = "0.8.3", default-features = false, features = ["alloc", "small_rng"] }
+core2 = { version = "0.4.0", default-features = false, features = ["alloc", "nightly"] }
+thread_local_macro = { path = "../../../../kernel/thread_local_macro" }
+theseus_path_std = { path = "../../../../ports/path_std", package = "path_std" }
+theseus_memory = { path = "../../../../kernel/memory", package = "memory" }
+mutex_sleep = { path = "../../../../kernel/mutex_sleep" }
+spin = { version = "0.9.0", git = "https://github.com/theseus-os/spin-rs" }
+
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mach = "0.3.2"
 
-[target.'cfg(unix)'.dependencies]
-rsix = "0.23.2"
+# [target.'cfg(all(not(target_os = "theseus"), unix))'.dependencies]
+# rsix = "0.23.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3.7", features = ["winbase", "memoryapi", "errhandlingapi", "handleapi"] }
@@ -45,7 +67,8 @@ cc = "1.0"
 maintenance = { status = "actively-developed" }
 
 [features]
-default = []
+default = [] # ["std"]
+std = ["anyhow/std", "backtrace/std", "wasmtime-environ/std"]
 
 async = ["wasmtime-fiber"]
 

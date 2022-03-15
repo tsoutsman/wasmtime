@@ -3,14 +3,22 @@
 
 use crate::{VMContext, VMInterrupts};
 use backtrace::Backtrace;
-use std::any::Any;
-use std::cell::{Cell, UnsafeCell};
-use std::error::Error;
-use std::mem::MaybeUninit;
-use std::ptr;
-use std::sync::atomic::Ordering::SeqCst;
-use std::sync::Once;
+use core::any::Any;
+use core::cell::{Cell, UnsafeCell};
+use crate::Error;
+use core::mem::MaybeUninit;
+use core::ptr;
+use core::sync::atomic::Ordering::SeqCst;
 use wasmtime_environ::TrapCode;
+use ::alloc::boxed::Box;
+
+#[cfg(feature = "std")]
+use std::sync::Once;
+#[cfg(not(feature = "std"))]
+use spin::Once;
+
+#[cfg(target_os = "theseus")]
+use thread_local_macro::thread_local;
 
 pub use self::tls::{tls_eager_initialize, TlsRestore};
 
@@ -36,6 +44,9 @@ cfg_if::cfg_if! {
     } else if #[cfg(target_os = "windows")] {
         mod windows;
         use windows as sys;
+    } else if #[cfg(target_os = "theseus")] {
+        mod theseus;
+        use theseus as sys;
     }
 }
 
@@ -250,7 +261,12 @@ impl CallThreadState {
                     maybe_interrupted,
                 }
             }
-            UnwindReason::Panic(panic) => std::panic::resume_unwind(panic),
+            UnwindReason::Panic(panic) => {
+                #[cfg(feature = "std")]
+                std::panic::resume_unwind(panic);
+                #[cfg(target_os = "theseus")]
+                panic!("TODO: Need support for `resume_unwind` in Theseus");
+            }
         })
     }
 
@@ -346,7 +362,8 @@ impl<T: Copy> Drop for ResetCell<'_, T> {
 mod tls {
     use super::CallThreadState;
     use crate::Trap;
-    use std::ptr;
+    use core::ptr;
+    use ::alloc::boxed::Box;
 
     pub use raw::Ptr;
 
@@ -364,8 +381,12 @@ mod tls {
     mod raw {
         use super::CallThreadState;
         use crate::Trap;
-        use std::cell::Cell;
-        use std::ptr;
+        use core::cell::Cell;
+        use core::ptr;
+        use ::alloc::boxed::Box;
+
+        #[cfg(not(feature = "std"))]
+        use super::super::thread_local;
 
         pub type Ptr = *const CallThreadState;
 

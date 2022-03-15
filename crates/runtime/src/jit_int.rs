@@ -3,9 +3,14 @@
 //! or unregister generated object images with debuggers.
 
 use lazy_static::lazy_static;
-use std::pin::Pin;
-use std::ptr;
+use core::pin::Pin;
+use core::ptr;
+use ::alloc::{boxed::Box, vec::Vec};
+
+#[cfg(feature = "std")]
 use std::sync::Mutex;
+#[cfg(target_os = "theseus")]
+use mutex_sleep::MutexSleep as Mutex;
 
 #[repr(C)]
 struct JITCodeEntry {

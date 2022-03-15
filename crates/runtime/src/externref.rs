@@ -99,17 +99,22 @@
 //! Examination of Deferred Reference Counting and Cycle Detection* by Quinane:
 //! <https://openresearch-repository.anu.edu.au/bitstream/1885/42030/2/hon-thesis.pdf>
 
-use std::any::Any;
-use std::cell::UnsafeCell;
-use std::cmp;
-use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
-use std::mem;
-use std::ops::Deref;
-use std::ptr::{self, NonNull};
-use std::sync::atomic::{self, AtomicUsize, Ordering};
-use std::{alloc::Layout, sync::Arc};
+use core::any::Any;
+use core::cell::UnsafeCell;
+use core::cmp;
+use core::hash::{Hash, Hasher};
+use core::mem;
+use core::ops::Deref;
+use core::ptr::{self, NonNull};
+use core::sync::atomic::{self, AtomicUsize, Ordering};
+use ::alloc::{alloc::Layout, boxed::Box, sync::Arc};
 use wasmtime_environ::StackMap;
+
+#[cfg(feature = "std")]
+use std::collections::HashSet;
+#[cfg(not(feature = "std"))]
+use hashbrown::HashSet;
+
 
 /// An external reference to some opaque data.
 ///
@@ -238,7 +243,7 @@ impl VMExternData {
 
         let value_and_padding_size = round_up_to_align(value_size, extern_data_align).unwrap();
 
-        let alloc_align = std::cmp::max(value_align, extern_data_align);
+        let alloc_align = core::cmp::max(value_align, extern_data_align);
         let alloc_size = value_and_padding_size + extern_data_size;
 
         debug_assert!(Layout::from_size_align(alloc_size, alloc_align).is_ok());
@@ -271,7 +276,7 @@ impl VMExternData {
         };
 
         ptr::drop_in_place(data.as_ptr());
-        std::alloc::dealloc(alloc_ptr.as_ptr(), layout);
+        ::alloc::alloc::dealloc(alloc_ptr.as_ptr(), layout);
     }
 
     #[inline]
@@ -312,9 +317,9 @@ impl VMExternRef {
             let (layout, footer_offset) =
                 VMExternData::layout_for(mem::size_of::<T>(), mem::align_of::<T>());
 
-            let alloc_ptr = std::alloc::alloc(layout);
+            let alloc_ptr = ::alloc::alloc::alloc(layout);
             let alloc_ptr = NonNull::new(alloc_ptr).unwrap_or_else(|| {
-                std::alloc::handle_alloc_error(layout);
+                ::alloc::alloc::handle_alloc_error(layout);
             });
 
             let value_ptr = alloc_ptr.cast::<T>();
@@ -360,7 +365,7 @@ impl VMExternRef {
     /// Use `from_raw` to recreate the `VMExternRef`.
     pub unsafe fn into_raw(self) -> *mut u8 {
         let ptr = self.0.cast::<u8>().as_ptr();
-        std::mem::forget(self);
+        core::mem::forget(self);
         ptr
     }
 
@@ -785,7 +790,7 @@ impl VMExternRefActivationsTable {
     pub fn set_gc_okay(&mut self, okay: bool) -> bool {
         #[cfg(debug_assertions)]
         {
-            return std::mem::replace(&mut self.gc_okay, okay);
+            return core::mem::replace(&mut self.gc_okay, okay);
         }
         #[cfg(not(debug_assertions))]
         {
@@ -813,7 +818,7 @@ struct DebugOnly<T> {
     inner: T,
 }
 
-impl<T> std::ops::Deref for DebugOnly<T> {
+impl<T> core::ops::Deref for DebugOnly<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -828,7 +833,7 @@ impl<T> std::ops::Deref for DebugOnly<T> {
     }
 }
 
-impl<T> std::ops::DerefMut for DebugOnly<T> {
+impl<T> core::ops::DerefMut for DebugOnly<T> {
     fn deref_mut(&mut self) -> &mut T {
         if cfg!(debug_assertions) {
             &mut self.inner
@@ -936,7 +941,7 @@ pub unsafe fn gc(
                         // this frame, we add `i * sizeof(word)` to the SP.
                         let ptr_to_ref = sp + i * mem::size_of::<usize>();
 
-                        let r = std::ptr::read(ptr_to_ref as *const *mut VMExternData);
+                        let r = core::ptr::read(ptr_to_ref as *const *mut VMExternData);
                         debug_assert!(
                             r.is_null() || activations_table_set.contains(&r),
                             "every on-stack externref inside a Wasm frame should \
