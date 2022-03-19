@@ -41,9 +41,11 @@ thiserror_core2 = { version = "2.0.0", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 rand = { version = "0.8.3", default-features = false, features = ["alloc", "small_rng"] }
 core2 = { version = "0.4.0", default-features = false, features = ["alloc", "nightly"] }
+theseus_catch_unwind = { path = "../../../../kernel/catch_unwind", package = "catch_unwind" }
 thread_local_macro = { path = "../../../../kernel/thread_local_macro" }
 theseus_path_std = { path = "../../../../ports/path_std", package = "path_std" }
 theseus_memory = { path = "../../../../kernel/memory", package = "memory" }
+theseus_task = { path = "../../../../kernel/memory", package = "task" }
 mutex_sleep = { path = "../../../../kernel/mutex_sleep" }
 spin = { version = "0.9.0", git = "https://github.com/theseus-os/spin-rs" }
 

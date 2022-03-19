@@ -19,6 +19,8 @@ use spin::Once;
 
 #[cfg(target_os = "theseus")]
 use thread_local_macro::thread_local;
+#[cfg(target_os = "theseus")]
+use theseus_task::{KillReason, PanicInfoOwned};
 
 pub use self::tls::{tls_eager_initialize, TlsRestore};
 
@@ -265,7 +267,9 @@ impl CallThreadState {
                 #[cfg(feature = "std")]
                 std::panic::resume_unwind(panic);
                 #[cfg(target_os = "theseus")]
-                panic!("TODO: Need support for `resume_unwind` in Theseus");
+                theseus_catch_unwind::resume_unwind(
+                   KillReason::Panic(PanicInfoOwned::from_payload(panic))
+                );
             }
         })
     }
