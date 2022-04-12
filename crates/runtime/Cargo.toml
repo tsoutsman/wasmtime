@@ -46,6 +46,7 @@ thread_local_macro = { path = "../../../../kernel/thread_local_macro" }
 theseus_path_std = { path = "../../../../ports/path_std", package = "path_std" }
 theseus_memory = { path = "../../../../kernel/memory", package = "memory" }
 theseus_task = { path = "../../../../kernel/task", package = "task" }
+theseus_signal_handler = { path = "../../../../kernel/signal_handler", package = "signal_handler" }
 mutex_sleep = { path = "../../../../kernel/mutex_sleep" }
 spin = { version = "0.9.0", git = "https://github.com/theseus-os/spin-rs" }
 
