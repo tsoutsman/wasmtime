@@ -17,6 +17,8 @@ wasmtime-types = { path = "../types", default-features = false, version = "0.30.
 wasmparser = { version = "0.81", default-features = false }
 indexmap = { version = "1.0.2", features = ["serde-1"] }
 thiserror = { version = "1.0.4", optional = true }
+thiserror_core2 = { version = "2.0.0", default-features = false }
+core2 = { version = "0.4.0", default-features = false, features = ["alloc", "nightly"] }
 serde = { version = "1.0.94", default-features = false, features = ["derive"] }
 log = { version = "0.4.8", default-features = false }
 more-asserts = "0.2.2"
@@ -31,4 +33,4 @@ maintenance = { status = "actively-developed" }
 
 [features]
 default = ["std"]
-std = ["anyhow/std", "thiserror", "wasmparser/std", "wasmtime-types/std"] ## indexmap/std?
+std = ["anyhow/std", "thiserror", "thiserror_core2/std", "wasmparser/std", "wasmtime-types/std"] ## indexmap/std?

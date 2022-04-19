@@ -1,19 +1,22 @@
 #[cfg(feature = "std")]
 use thiserror::Error;
+#[cfg(not(feature = "std"))]
+use thiserror_core2::Error;
+#[cfg(not(feature = "std"))]
+use core2;
 use alloc::string::String;
 
 /// A WebAssembly translation error.
 ///
 /// When a WebAssembly function can't be translated, one of these error codes will be returned
 /// to describe the failure.
-#[derive(Debug)]
-#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, Error)]
 pub enum WasmError {
     /// The input WebAssembly code is invalid.
     ///
     /// This error code is used by a WebAssembly translator when it encounters invalid WebAssembly
     /// code. This should never happen for validated WebAssembly code.
-    #[cfg_attr(feature = "std", error("Invalid input WebAssembly code at offset {offset}: {message}"))]
+    #[error("Invalid input WebAssembly code at offset {offset}: {message}")]
     InvalidWebAssembly {
         /// A string describing the validation error.
         message: String,
@@ -24,7 +27,7 @@ pub enum WasmError {
     /// A feature used by the WebAssembly code is not supported by the embedding environment.
     ///
     /// Embedding environments may have their own limitations and feature restrictions.
-    #[cfg_attr(feature = "std", error("Unsupported feature: {0}"))]
+    #[error("Unsupported feature: {0}")]
     Unsupported(String),
 
     /// An implementation limit was exceeded.
@@ -33,11 +36,11 @@ pub enum WasmError {
     /// limits][limits] that cause compilation to fail when they are exceeded.
     ///
     /// [limits]: https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/docs/ir.md#implementation-limits
-    #[cfg_attr(feature = "std", error("Implementation limit exceeded"))]
+    #[error("Implementation limit exceeded")]
     ImplLimitExceeded,
 
     /// Any user-defined error.
-    #[cfg_attr(feature = "std", error("User error: {0}"))]
+    #[error("User error: {0}")]
     User(String),
 }
 

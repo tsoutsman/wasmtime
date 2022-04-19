@@ -18,6 +18,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use thiserror::Error;
+#[cfg(not(feature = "std"))]
+use thiserror_core2::Error;
 
 /// Information about a function, such as trap information, address map,
 /// and stack maps.
@@ -60,19 +62,18 @@ pub struct StackMapInformation {
 }
 
 /// An error while compiling WebAssembly to machine code.
-#[derive(Debug)]
-#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, Error)]
 pub enum CompileError {
     /// A wasm translation error occured.
-    #[cfg_attr(feature = "std", error("WebAssembly translation error"))]
-    Wasm(#[cfg_attr(feature = "std", from)] WasmError),
+    #[error("WebAssembly translation error")]
+    Wasm(#[from] WasmError),
 
     /// A compilation error occured.
-    #[cfg_attr(feature = "std", error("Compilation error: {0}"))]
+    #[error("Compilation error: {0}")]
     Codegen(String),
 
     /// A compilation error occured.
-    #[cfg_attr(feature = "std", error("Debug info is not supported with this configuration"))]
+    #[error("Debug info is not supported with this configuration")]
     DebugInfoNotSupported,
 }
 
