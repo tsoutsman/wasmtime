@@ -10,9 +10,16 @@ use anyhow::{anyhow, Context, Result};
 use object::write::{Object, StandardSegment};
 use object::{File, Object as _, ObjectSection, SectionKind};
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
-use std::sync::Arc;
-use thiserror::Error;
+use core::ops::Range;
+use alloc::sync::Arc;
+use alloc::string::String;
+use alloc::vec::Vec;
+#[cfg(feature = "std")]
+use std::error::Error;
+#[cfg(target_os = "theseus")]
+use thiserror_core2::Error;
+#[cfg(target_os = "theseus")]
+use core2;
 use wasmtime_environ::{
     CompileError, DefinedFuncIndex, FunctionInfo, InstanceSignature, InstanceTypeIndex, Module,
     ModuleSignature, ModuleTranslation, ModuleTypeIndex, PrimaryMap, SignatureIndex,
@@ -63,8 +70,8 @@ pub enum SetupError {
     Instantiate(#[from] InstantiationError),
 
     /// Debug information generation error occurred.
-    #[error("Debug information error")]
-    DebugInfo(#[from] anyhow::Error),
+    #[error("Debug information error {0}")]
+    DebugInfo(anyhow::Error),
 }
 
 /// Secondary in-memory results of compilation.
@@ -192,7 +199,6 @@ pub fn finish_compile(
         ELF_WASMTIME_INFO.as_bytes().to_vec(),
         SectionKind::ReadOnlyData,
     );
-    let mut bytes = Vec::new();
     let info = CompiledModuleInfo {
         module,
         funcs,
@@ -204,7 +210,9 @@ pub fn finish_compile(
             has_wasm_debuginfo: tunables.parse_wasm_debuginfo,
         },
     };
-    bincode::serialize_into(&mut bytes, &info)?;
+    // migrating to bincode v2, which supports no_std: <https://github.com/bincode-org/bincode/blob/3d50babcfff20c71de57605c3c045df9a9236279/docs/migration_guide.md>
+    let bytes = bincode::serde::encode_to_vec(&info, bincode::config::legacy())
+        .map_err(|e| anyhow!("{}", e))?;
     obj.append_section_data(info_id, &bytes, 1);
 
     return Ok((MmapVec::from_obj(obj)?, info));
@@ -292,7 +300,10 @@ impl CompiledModule {
         // by deserializing it from the compiliation image.
         let info = match info {
             Some(info) => info,
-            None => bincode::deserialize(section(ELF_WASMTIME_INFO)?)
+            // migrating to bincode v2, which supports no_std: <https://github.com/bincode-org/bincode/blob/3d50babcfff20c71de57605c3c045df9a9236279/docs/migration_guide.md>
+            None => bincode::serde::decode_from_slice(section(ELF_WASMTIME_INFO)?, bincode::config::legacy())
+                .map(|(retval, _bytes_read)| retval)
+                .map_err(|e| anyhow!("{}", e))
                 .context("failed to deserialize wasmtime module info")?,
         };
 
@@ -318,7 +329,8 @@ impl CompiledModule {
         if self.meta.native_debug_info_present {
             let code = self.code();
             let bytes = create_gdbjit_image(self.mmap().to_vec(), (code.as_ptr(), code.len()))
-                .map_err(SetupError::DebugInfo)?;
+                .map_err(SetupError::DebugInfo)
+                .map_err(anyhow::Error::msg)?;
             profiler.module_load(self, Some(&bytes));
             let reg = GdbJitImageRegistration::register(bytes);
             self.dbg_jit_registration = Some(reg);
@@ -388,7 +400,7 @@ impl CompiledModule {
             let func = &code[info.start as usize..][..info.length as usize];
             (
                 i,
-                std::ptr::slice_from_raw_parts_mut(
+                core::ptr::slice_from_raw_parts_mut(
                     func.as_ptr() as *mut VMFunctionBody,
                     func.len(),
                 ),
@@ -404,7 +416,7 @@ impl CompiledModule {
                 info.signature,
                 unsafe {
                     let ptr = &code[info.start as usize];
-                    std::mem::transmute::<*const u8, VMTrampoline>(ptr)
+                    core::mem::transmute::<*const u8, VMTrampoline>(ptr)
                 },
                 info.length as usize,
             )
@@ -479,6 +491,7 @@ impl CompiledModule {
             return Ok(None);
         }
         let obj = File::parse(&self.mmap()[..])
+            .map_err(anyhow::Error::msg)
             .context("failed to parse internal ELF file representation")?;
         let dwarf = gimli::Dwarf::load(|id| -> Result<_> {
             let data = obj
@@ -488,6 +501,7 @@ impl CompiledModule {
             Ok(EndianSlice::new(data, gimli::LittleEndian))
         })?;
         let cx = addr2line::Context::from_dwarf(dwarf)
+            .map_err(anyhow::Error::msg)
             .context("failed to create addr2line dwarf mapping context")?;
         Ok(Some(SymbolizeContext {
             inner: cx,

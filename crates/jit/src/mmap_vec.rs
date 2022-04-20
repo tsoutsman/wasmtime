@@ -1,8 +1,12 @@
 use anyhow::{Context, Error, Result};
 use object::write::{Object, WritableBuffer};
-use std::ops::{Deref, DerefMut, Range, RangeTo};
+use core::ops::{Deref, DerefMut, Range, RangeTo};
+#[cfg(feature = "std")]
 use std::path::Path;
-use std::sync::Arc;
+#[cfg(target_os = "theseus")]
+use theseus_path_std::Path;
+use alloc::format;
+use alloc::sync::Arc;
 use wasmtime_runtime::Mmap;
 
 /// A type akin to `Vec<u8>`, but backed by `mmap` and able to be split.
@@ -69,7 +73,7 @@ impl MmapVec {
             }
             Err(e) => match result.err.take() {
                 Some(original) => Err(original.context(e)),
-                None => Err(e.into()),
+                None => Err(e).map_err(anyhow::Error::msg),
             },
         }
     }
@@ -158,7 +162,7 @@ impl DerefMut for MmapVec {
         // specified in `self.range`. This should allow us to safely hand out
         // mutable access to these bytes if so desired.
         unsafe {
-            let slice = std::slice::from_raw_parts_mut(self.mmap.as_mut_ptr(), self.mmap.len());
+            let slice = core::slice::from_raw_parts_mut(self.mmap.as_mut_ptr(), self.mmap.len());
             &mut slice[self.range.clone()]
         }
     }
@@ -195,16 +199,12 @@ impl WritableBuffer for ObjectMmap {
         Ok(())
     }
 
-    fn resize(&mut self, new_len: usize, value: u8) {
+    fn resize(&mut self, new_len: usize) {
+        // Resizing always appends 0 bytes and since new mmaps start out as 0
+        // bytes we don't actually need to do anything as part of this other
+        // than update our own length.
         if new_len <= self.len {
             return;
-        }
-        let mmap = self.mmap.as_mut().expect("write before reserve");
-
-        // new mmaps are automatically filled with zeros, so if we're asked to
-        // fill with zeros then we can skip the actual fill step.
-        if value != 0 {
-            mmap[self.len..][..new_len - self.len].fill(value);
         }
         self.len = new_len;
     }

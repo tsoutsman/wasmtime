@@ -1,6 +1,12 @@
 use crate::CompiledModule;
+#[cfg(feature = "std")]
 use std::error::Error;
-use std::fmt;
+#[cfg(target_os = "theseus")]
+use core2::error::Error;
+use core::fmt;
+use alloc::format;
+use alloc::string::String;
+#[allow(dead_code)]
 use wasmtime_environ::{DefinedFuncIndex, EntityRef, Module};
 
 cfg_if::cfg_if! {

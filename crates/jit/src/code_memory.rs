@@ -4,7 +4,7 @@ use crate::unwind::UnwindRegistration;
 use crate::MmapVec;
 use anyhow::{bail, Context, Result};
 use object::read::{File, Object, ObjectSection};
-use std::mem::ManuallyDrop;
+use core::mem::ManuallyDrop;
 
 /// Management of executable memory within a `MmapVec`
 ///
@@ -84,7 +84,8 @@ impl CodeMemory {
 
         let mut ret = Publish {
             obj: File::parse(&self.mmap[..])
-                .with_context(|| "failed to parse internal compilation artifact")?,
+                .map_err(|e| anyhow::anyhow!("failed to parse internal compilation artifact: {}", e))?,
+                // .with_context(|| "failed to parse internal compilation artifact")?,
             mmap: &self.mmap,
             text: &[],
         };
@@ -136,7 +137,7 @@ impl CodeMemory {
         //   pointers we pass in itself.
         unsafe {
             let text_mut =
-                std::slice::from_raw_parts_mut(ret.text.as_ptr() as *mut u8, ret.text.len());
+                core::slice::from_raw_parts_mut(ret.text.as_ptr() as *mut u8, ret.text.len());
             let text_offset = ret.text.as_ptr() as usize - ret.mmap.as_ptr() as usize;
             let text_range = text_offset..text_offset + text_mut.len();
             let mut text_section_readwrite = false;
@@ -184,6 +185,8 @@ unsafe fn register_unwind_info(obj: &File, text: &[u8]) -> Result<Option<UnwindR
     Ok(Some(
         UnwindRegistration::new(
             text.as_ptr() as *mut _,
+            #[cfg(target_os = "theseus")]
+            text.len(), // Theseus needs the length of the text section too
             unwind_info.as_ptr() as *mut _,
             unwind_info.len(),
         )

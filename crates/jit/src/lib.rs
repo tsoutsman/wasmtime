@@ -20,6 +20,11 @@
     )
 )]
 
+#![cfg_attr(not(feature = "std"), no_std, feature(core_intrinsics))]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 mod code_memory;
 mod debug;
 mod instantiate;

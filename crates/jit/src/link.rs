@@ -2,7 +2,7 @@
 
 use object::read::{Object, Relocation, RelocationTarget};
 use object::{File, NativeEndian as NE, ObjectSymbol, RelocationEncoding, RelocationKind};
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 use wasmtime_runtime::libcalls;
 
 type I32 = object::I32Bytes<NE>;

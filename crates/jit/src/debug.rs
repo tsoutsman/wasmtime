@@ -6,7 +6,8 @@ use object::{
     File, NativeEndian as NE, Object, ObjectSection, ObjectSymbol, RelocationEncoding,
     RelocationKind, RelocationTarget, U64Bytes,
 };
-use std::mem::size_of;
+use core::mem::size_of;
+use alloc::vec::Vec;
 
 pub fn create_gdbjit_image(
     mut bytes: Vec<u8>,
@@ -32,7 +33,8 @@ pub fn create_gdbjit_image(
 
 fn relocate_dwarf_sections(bytes: &mut [u8], code_region: (*const u8, usize)) -> Result<(), Error> {
     let mut relocations = Vec::new();
-    let obj = File::parse(&bytes[..])?;
+    let obj = File::parse(&bytes[..])
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
     for section in obj.sections() {
         let section_start = match section.file_range() {
             Some((start, _)) => start,

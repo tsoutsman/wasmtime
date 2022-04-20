@@ -27,12 +27,15 @@ anyhow = { version = "1.0.38", default-features = false }
 ### NOTE: we *should* be able to include these dependencies here for non-Theseus builds
 ###       but I can't get cargo to build it with the correct features if these are here.
 ###       This is likely a bug in cargo's target-specific feature resolution. (?)
-###       Thus, I've commented them out currently, which means that non-Theseus builds are broken.
+###       Thus, I've made them optional, but included them in the `std` feature below.
+###       Note that this is a hack -- they are not actually optional, they're required.
+###       As such, non-Theseus builds may not work any more on this branch.
 ###
-# [target.'cfg(not(target_os = "theseus"))'.dependencies]
-# thiserror = "1.0.2"
-# lazy_static = "1.4.0"
-# rand = "0.8.3"
+[target.'cfg(not(target_os = "theseus"))'.dependencies]
+thiserror = { version = "1.0.2", optional = true }
+lazy_static = { version = "1.4.0", optional = true }
+rand = { version = "0.8.3", optional = true }
+
 
 [target.'cfg(target_os = "theseus")'.dependencies]
 hashbrown = { version = "0.11.2", features = ["ahash"], default-features = false }
@@ -70,8 +73,11 @@ cc = "1.0"
 maintenance = { status = "actively-developed" }
 
 [features]
-default = [] # ["std"]
-std = ["anyhow/std", "backtrace/std", "wasmtime-environ/std"]
+default = ["std"]
+std = [
+    "thiserror", "lazy_static", "rand", 
+    "anyhow/std", "backtrace/std", "wasmtime-environ/std",
+]
 
 async = ["wasmtime-fiber"]
 
