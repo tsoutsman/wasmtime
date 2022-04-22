@@ -53,11 +53,14 @@ use anyhow::{anyhow, bail, Context, Result};
 use object::read::elf::FileHeader;
 use object::{Bytes, File, Object, ObjectSection};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::convert::TryFrom;
+use alloc::collections::BTreeMap;
+use core::convert::TryFrom;
+#[cfg(feature = "std")]
 use std::path::Path;
-use std::str::FromStr;
-use std::sync::Arc;
+#[cfg(target_os = "theseus")]
+use theseus_path_std::Path;
+use core::str::FromStr;
+use alloc::{format, string::String, sync::Arc, vec, vec::Vec};
 use wasmtime_environ::{Compiler, FlagValue, Tunables};
 use wasmtime_jit::{subslice_range, CompiledModule, CompiledModuleInfo, MmapVec, TypeTables};
 
@@ -71,6 +74,7 @@ struct WasmFeatures {
     pub bulk_memory: bool,
     pub module_linking: bool,
     pub simd: bool,
+    pub relaxed_simd: bool,
     pub threads: bool,
     pub tail_call: bool,
     pub deterministic_only: bool,
@@ -87,26 +91,28 @@ impl From<&wasmparser::WasmFeatures> for WasmFeatures {
             bulk_memory,
             module_linking,
             simd,
+            relaxed_simd,
             threads,
             tail_call,
             deterministic_only,
             multi_memory,
             exceptions,
             memory64,
-        } = other;
+        } = *other;
 
         Self {
-            reference_types: *reference_types,
-            multi_value: *multi_value,
-            bulk_memory: *bulk_memory,
-            module_linking: *module_linking,
-            simd: *simd,
-            threads: *threads,
-            tail_call: *tail_call,
-            deterministic_only: *deterministic_only,
-            multi_memory: *multi_memory,
-            exceptions: *exceptions,
-            memory64: *memory64,
+            reference_types,
+            multi_value,
+            bulk_memory,
+            module_linking,
+            simd,
+            relaxed_simd,
+            threads,
+            tail_call,
+            deterministic_only,
+            multi_memory,
+            exceptions,
+            memory64,
         }
     }
 }
@@ -338,7 +344,7 @@ impl<'a> SerializedModule<'a> {
             // the +8 to the length here is to accomodate the size we'll write
             // to get to the next object.
             if i > 0 {
-                let obj = File::parse(&obj.as_ref()[..])?;
+                let obj = File::parse(&obj.as_ref()[..]).map_err(anyhow::Error::msg)?;
                 let align = obj.sections().map(|s| s.align()).max().unwrap_or(0).max(1);
                 let align = usize::try_from(align).unwrap();
                 let new_size = align_to(ret.len() + 8, align);
@@ -364,7 +370,13 @@ impl<'a> SerializedModule<'a> {
         );
         ret.push(version.len() as u8);
         ret.extend_from_slice(version.as_bytes());
+        #[cfg(feature = "std")]
         bincode::serialize_into(&mut ret, &self.metadata)?;
+        #[cfg(not(feature = "std"))] {
+            let metadata_bytes = bincode::serde::encode_to_vec(&self.metadata, bincode::config::legacy())
+                .map_err(|e| anyhow!("{}", e))?;
+            ret.append(&mut metadata_bytes);
+        }
 
         Ok(ret)
     }
@@ -426,7 +438,7 @@ impl<'a> SerializedModule<'a> {
 
         match version_strat {
             ModuleVersionStrategy::WasmtimeVersion => {
-                let version = std::str::from_utf8(&metadata[1..1 + version_len])?;
+                let version = core::str::from_utf8(&metadata[1..1 + version_len]).map_err(anyhow::Error::msg)?;
                 if version != env!("CARGO_PKG_VERSION") {
                     bail!(
                         "Module was compiled with incompatible Wasmtime version '{}'",
@@ -435,7 +447,7 @@ impl<'a> SerializedModule<'a> {
                 }
             }
             ModuleVersionStrategy::Custom(v) => {
-                let version = std::str::from_utf8(&metadata[1..1 + version_len])?;
+                let version = core::str::from_utf8(&metadata[1..1 + version_len]).map_err(anyhow::Error::msg)?;
                 if version != v {
                     bail!(
                         "Module was compiled with incompatible version '{}'",
@@ -446,7 +458,9 @@ impl<'a> SerializedModule<'a> {
             ModuleVersionStrategy::None => { /* ignore the version info, accept all */ }
         }
 
-        let metadata = bincode::deserialize::<Metadata>(&metadata[1 + version_len..])
+        let metadata = bincode::serde::decode_from_slice::<Metadata, _>(&metadata[1 + version_len..], bincode::config::legacy())
+            .map(|(retval, _bytes_read)| retval)
+            .map_err(|e| anyhow!("{}", e))
             .context("deserialize compilation artifacts")?;
 
         return Ok(SerializedModule {
@@ -478,6 +492,7 @@ impl<'a> SerializedModule<'a> {
             }
             let sections = header
                 .section_headers(NE, &mmap[..])
+                .map_err(anyhow::Error::msg)
                 .context("failed to read section headers")?;
             let range = subslice_range(object::bytes_of_slice(sections), mmap);
             Ok(mmap.drain(..range.end))
@@ -506,7 +521,7 @@ impl<'a> SerializedModule<'a> {
     }
 
     fn check_shared_flags(&mut self, compiler: &dyn Compiler) -> Result<()> {
-        let mut shared_flags = std::mem::take(&mut self.metadata.shared_flags);
+        let mut shared_flags = core::mem::take(&mut self.metadata.shared_flags);
         for (name, host) in compiler.flags() {
             match shared_flags.remove(&name) {
                 Some(v) => {
@@ -529,7 +544,7 @@ impl<'a> SerializedModule<'a> {
     }
 
     fn check_isa_flags(&mut self, compiler: &dyn Compiler) -> Result<()> {
-        let mut isa_flags = std::mem::take(&mut self.metadata.isa_flags);
+        let mut isa_flags = core::mem::take(&mut self.metadata.isa_flags);
         for (name, host) in compiler.isa_flags() {
             match isa_flags.remove(&name) {
                 Some(v) => match (&v, &host) {
@@ -561,7 +576,7 @@ impl<'a> SerializedModule<'a> {
         Ok(())
     }
 
-    fn check_int<T: Eq + std::fmt::Display>(found: T, expected: T, feature: &str) -> Result<()> {
+    fn check_int<T: Eq + core::fmt::Display>(found: T, expected: T, feature: &str) -> Result<()> {
         if found == expected {
             return Ok(());
         }
@@ -651,6 +666,7 @@ impl<'a> SerializedModule<'a> {
             bulk_memory,
             module_linking,
             simd,
+            relaxed_simd,
             threads,
             tail_call,
             deterministic_only,

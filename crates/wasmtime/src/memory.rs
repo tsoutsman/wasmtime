@@ -2,8 +2,9 @@ use crate::store::{StoreData, StoreOpaque, Stored};
 use crate::trampoline::generate_memory_export;
 use crate::{AsContext, AsContextMut, MemoryType, StoreContext, StoreContextMut};
 use anyhow::{bail, Result};
-use std::convert::TryFrom;
-use std::slice;
+use core::convert::TryFrom;
+use core::slice;
+use alloc::{boxed::Box, string::String};
 
 /// Error for out of bounds [`Memory`] access.
 #[derive(Debug)]
@@ -13,13 +14,16 @@ pub struct MemoryAccessError {
     _private: (),
 }
 
-impl std::fmt::Display for MemoryAccessError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for MemoryAccessError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "out of bounds memory access")
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for MemoryAccessError {}
+#[cfg(not(feature = "std"))]
+impl core2::error::Error for MemoryAccessError {}
 
 /// A WebAssembly linear memory.
 ///

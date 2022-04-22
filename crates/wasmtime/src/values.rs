@@ -2,7 +2,7 @@ use crate::r#ref::ExternRef;
 use crate::store::StoreOpaque;
 use crate::{AsContextMut, Func, ValType};
 use anyhow::{bail, Result};
-use std::ptr;
+use core::ptr;
 use wasmtime_runtime::TableElement;
 
 pub use wasmtime_runtime::ValRaw;

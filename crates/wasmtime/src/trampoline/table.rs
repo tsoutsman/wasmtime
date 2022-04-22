@@ -2,6 +2,7 @@ use crate::store::{InstanceId, StoreOpaque};
 use crate::trampoline::create_handle;
 use crate::TableType;
 use anyhow::Result;
+use alloc::{boxed::Box, string::String};
 use wasmtime_environ::{EntityIndex, Module};
 
 pub fn create_table(store: &mut StoreOpaque, table: &TableType) -> Result<InstanceId> {

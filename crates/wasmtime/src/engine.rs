@@ -3,7 +3,7 @@ use crate::{Config, Trap};
 use anyhow::Result;
 #[cfg(feature = "parallel-compilation")]
 use rayon::prelude::*;
-use std::sync::Arc;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 #[cfg(feature = "cache")]
 use wasmtime_cache::CacheConfig;
 use wasmtime_runtime::{debug_builtins, InstanceAllocator};

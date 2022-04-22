@@ -5,8 +5,8 @@ use crate::{
     Mutability, TableType, Trap, Val, ValType,
 };
 use anyhow::{anyhow, bail, Result};
-use std::mem;
-use std::ptr;
+use core::mem;
+use core::ptr;
 use wasmtime_runtime::{self as runtime, InstanceHandle};
 
 // Externals
@@ -443,7 +443,8 @@ impl Table {
             let table = Table::from_wasmtime_table(wasmtime_export, store);
             (*table.wasmtime_table(store))
                 .fill(0, init, ty.minimum())
-                .map_err(Trap::from_runtime)?;
+                .map_err(Trap::from_runtime)
+                .map_err(anyhow::Error::msg)?;
 
             Ok(table)
         }
@@ -590,7 +591,8 @@ impl Table {
         let src = src_table.wasmtime_table(store);
         unsafe {
             runtime::Table::copy(dst, src, dst_index, src_index, len)
-                .map_err(Trap::from_runtime)?;
+                .map_err(Trap::from_runtime)
+                .map_err(anyhow::Error::msg)?;
         }
         Ok(())
     }
@@ -618,7 +620,8 @@ impl Table {
 
         let table = self.wasmtime_table(store);
         unsafe {
-            (*table).fill(dst, val, len).map_err(Trap::from_runtime)?;
+            (*table).fill(dst, val, len).map_err(Trap::from_runtime)
+                .map_err(anyhow::Error::msg)?;
         }
 
         Ok(())

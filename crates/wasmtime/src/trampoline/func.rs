@@ -2,9 +2,10 @@
 
 use crate::{Engine, FuncType, Trap, ValRaw};
 use anyhow::Result;
-use std::any::Any;
+use core::any::Any;
+#[cfg(feature = "std")]
 use std::panic::{self, AssertUnwindSafe};
-use std::sync::Arc;
+use alloc::{boxed::Box, string::String, sync::Arc};
 use wasmtime_environ::{EntityIndex, Module, ModuleType, PrimaryMap, SignatureIndex};
 use wasmtime_jit::{CodeMemory, MmapVec};
 use wasmtime_runtime::{
@@ -38,7 +39,7 @@ unsafe extern "C" fn stub_fn<F>(
     // below will trigger a longjmp, which won't run local destructors if we
     // have any. To prevent leaks we avoid having any local destructors by
     // avoiding local variables.
-    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+    let closure = || {
         // Double-check ourselves in debug mode, but we control
         // the `Any` here so an unsafe downcast should also
         // work.
@@ -46,7 +47,15 @@ unsafe extern "C" fn stub_fn<F>(
         debug_assert!(state.is::<TrampolineState<F>>());
         let state = &*(state as *const _ as *const TrampolineState<F>);
         (state.func)(caller_vmctx, values_vec)
-    }));
+    };
+
+    #[cfg(feature = "std")]
+    let result = std::panic::catch_unwind(AssertUnwindSafe(closure));
+    #[cfg(target_os = "theseus")]
+    let result = theseus_catch_unwind::catch_unwind_with_arg(
+        |_: ()| { closure() },
+        (), // empty void arg 
+    );
 
     match result {
         Ok(Ok(())) => {}
@@ -61,7 +70,12 @@ unsafe extern "C" fn stub_fn<F>(
         // And finally if the imported function panicked, then we trigger the
         // form of unwinding that's safe to jump over wasm code on all
         // platforms.
-        Err(panic) => wasmtime_runtime::resume_panic(panic),
+        Err(panic) => {
+            #[cfg(target_os = "theseus")]
+            let panic = Box::new(panic);
+
+            wasmtime_runtime::resume_panic(panic);
+        }
     }
 }
 
@@ -102,7 +116,7 @@ where
             sig,
             Box::new(TrampolineState { func, code_memory }),
         )?;
-        let host_trampoline = std::mem::transmute::<*const u8, VMTrampoline>(host_trampoline);
+        let host_trampoline = core::mem::transmute::<*const u8, VMTrampoline>(host_trampoline);
         Ok((instance, host_trampoline))
     }
 }
@@ -133,6 +147,6 @@ pub unsafe fn create_raw_function(
             host_state,
             store: None,
             wasm_data: &[],
-        })?,
+        }).map_err(anyhow::Error::msg)?,
     )
 }

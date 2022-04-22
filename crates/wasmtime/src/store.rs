@@ -78,18 +78,25 @@
 
 use crate::{module::ModuleRegistry, Engine, Module, Trap, Val, ValRaw};
 use anyhow::{bail, Result};
-use std::cell::UnsafeCell;
+use core::cell::UnsafeCell;
+#[cfg(feature = "std")]
 use std::collections::HashMap;
-use std::convert::TryFrom;
+#[cfg(not(feature = "std"))]
+use hashbrown::HashMap;
+use core::convert::TryFrom;
+#[cfg(feature = "std")]
 use std::error::Error;
-use std::fmt;
-use std::future::Future;
-use std::marker;
-use std::mem::{self, ManuallyDrop};
-use std::ops::{Deref, DerefMut};
-use std::pin::Pin;
-use std::ptr;
-use std::sync::Arc;
+#[cfg(not(feature = "std"))]
+use core2::error::Error;
+use core::fmt;
+use core::future::Future;
+use core::marker;
+use core::mem::{self, ManuallyDrop};
+use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
+use core::ptr;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
+#[cfg(feature = "async")]
 use std::task::{Context, Poll};
 use wasmtime_runtime::{
     InstanceAllocationRequest, InstanceAllocator, InstanceHandle, ModuleInfo,
@@ -296,7 +303,7 @@ unsafe impl Sync for AsyncState {}
 /// An RAII type to automatically mark a region of code as unsafe for GC.
 pub(crate) struct AutoAssertNoGc<T>
 where
-    T: std::ops::DerefMut<Target = StoreOpaque>,
+    T: core::ops::DerefMut<Target = StoreOpaque>,
 {
     #[cfg(debug_assertions)]
     prev_okay: bool,
@@ -305,7 +312,7 @@ where
 
 impl<T> AutoAssertNoGc<T>
 where
-    T: std::ops::DerefMut<Target = StoreOpaque>,
+    T: core::ops::DerefMut<Target = StoreOpaque>,
 {
     pub fn new(mut store: T) -> Self {
         drop(&mut store);
@@ -321,9 +328,9 @@ where
     }
 }
 
-impl<T> std::ops::Deref for AutoAssertNoGc<T>
+impl<T> core::ops::Deref for AutoAssertNoGc<T>
 where
-    T: std::ops::DerefMut<Target = StoreOpaque>,
+    T: core::ops::DerefMut<Target = StoreOpaque>,
 {
     type Target = T;
 
@@ -332,9 +339,9 @@ where
     }
 }
 
-impl<T> std::ops::DerefMut for AutoAssertNoGc<T>
+impl<T> core::ops::DerefMut for AutoAssertNoGc<T>
 where
-    T: std::ops::DerefMut<Target = StoreOpaque>,
+    T: core::ops::DerefMut<Target = StoreOpaque>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.store
@@ -343,7 +350,7 @@ where
 
 impl<T> Drop for AutoAssertNoGc<T>
 where
-    T: std::ops::DerefMut<Target = StoreOpaque>,
+    T: core::ops::DerefMut<Target = StoreOpaque>,
 {
     fn drop(&mut self) {
         #[cfg(debug_assertions)]
@@ -446,7 +453,7 @@ impl<T> Store<T> {
         // object must be strictly bounded to the `Store` itself, and is a
         // variant that we have to maintain throughout Wasmtime.
         unsafe {
-            let traitobj = std::mem::transmute::<
+            let traitobj = core::mem::transmute::<
                 *mut (dyn wasmtime_runtime::Store + '_),
                 *mut (dyn wasmtime_runtime::Store + 'static),
             >(&mut *inner);
@@ -498,7 +505,7 @@ impl<T> Store<T> {
         // there is a comment indicating this as well.
         unsafe {
             let mut inner = ManuallyDrop::take(&mut self.inner);
-            std::mem::forget(self);
+            core::mem::forget(self);
             ManuallyDrop::take(&mut inner.data)
         }
     }
@@ -1357,7 +1364,7 @@ impl<T> StoreContextMut<'_, T> {
                 unsafe {
                     let _reset = Reset(self.current_poll_cx, *self.current_poll_cx);
                     *self.current_poll_cx =
-                        std::mem::transmute::<&mut Context<'_>, *mut Context<'static>>(cx);
+                        core::mem::transmute::<&mut Context<'_>, *mut Context<'static>>(cx);
 
                     // After that's set up we resume execution of the fiber, which
                     // may also start the fiber for the first time. This either
@@ -1529,7 +1536,7 @@ unsafe impl<T> wasmtime_runtime::Store for StoreInner<T> {
             }
         }
 
-        impl std::error::Error for OutOfGasError {}
+        impl Error for OutOfGasError {}
     }
 }
 

@@ -1,11 +1,18 @@
 //! Implement a registry of function signatures, for fast indirect call
 //! signature checking.
 
+#[cfg(feature = "std")]
 use std::{
     collections::{hash_map::Entry, HashMap},
     sync::RwLock,
 };
-use std::{convert::TryFrom, sync::Arc};
+#[cfg(not(feature = "std"))]
+use hashbrown::{HashMap, hash_map::Entry};
+#[cfg(target_os = "theseus")]
+use theseus_mutex::RwLockSleep as RwLock;
+
+use core::convert::TryFrom;
+use alloc::{sync::Arc, vec::Vec};
 use wasmtime_environ::{PrimaryMap, SignatureIndex, WasmFuncType};
 use wasmtime_runtime::{VMSharedSignatureIndex, VMTrampoline};
 
@@ -118,11 +125,11 @@ impl SignatureRegistryInner {
                 let (index, entry) = match self.free.pop() {
                     Some(index) => (index, &mut self.entries[index.bits() as usize]),
                     None => {
-                        // Keep `index_map` len under 2**32 -- VMSharedSignatureIndex::new(std::u32::MAX)
+                        // Keep `index_map` len under 2**32 -- VMSharedSignatureIndex::new(core::u32::MAX)
                         // is reserved for VMSharedSignatureIndex::default().
                         assert!(
-                            len < std::u32::MAX as usize,
-                            "Invariant check: index_map.len() < std::u32::MAX"
+                            len < core::u32::MAX as usize,
+                            "Invariant check: index_map.len() < core::u32::MAX"
                         );
                         debug_assert_eq!(len, self.entries.len());
 

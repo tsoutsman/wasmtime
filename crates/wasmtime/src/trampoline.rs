@@ -14,8 +14,8 @@ use self::table::create_table;
 use crate::store::{InstanceId, StoreOpaque};
 use crate::{GlobalType, MemoryType, TableType, Val};
 use anyhow::Result;
-use std::any::Any;
-use std::sync::Arc;
+use core::any::Any;
+use alloc::{boxed::Box, sync::Arc};
 use wasmtime_environ::{EntityIndex, GlobalIndex, MemoryIndex, Module, TableIndex};
 use wasmtime_runtime::{
     Imports, InstanceAllocationRequest, InstanceAllocator, OnDemandInstanceAllocator,
@@ -49,7 +49,7 @@ fn create_handle(
                 store: Some(store.traitobj()),
                 wasm_data: &[],
             },
-        )?;
+        ).map_err(anyhow::Error::msg)?;
 
         Ok(store.add_instance(handle, true))
     }

@@ -4,15 +4,19 @@ use crate::{
     StoreContext, StoreContextMut, Trap, Val, ValRaw, ValType,
 };
 use anyhow::{bail, Context as _, Result};
+#[cfg(feature = "std")]
 use std::error::Error;
-use std::fmt;
-use std::future::Future;
-use std::mem;
+#[cfg(not(feature = "std"))]
+use core2::error::Error;
+use core::fmt;
+use core::future::Future;
+use core::mem;
+#[cfg(feature = "std")]
 use std::panic::{self, AssertUnwindSafe};
-use std::pin::Pin;
-use std::ptr::NonNull;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::Arc;
+use core::pin::Pin;
+use core::ptr::NonNull;
+use core::sync::atomic::Ordering::Relaxed;
+use alloc::{boxed::Box, sync::Arc};
 use wasmtime_environ::{EntityIndex, FuncIndex};
 use wasmtime_runtime::{
     raise_user_trap, ExportFunction, InstanceAllocator, InstanceHandle, OnDemandInstanceAllocator,
@@ -902,7 +906,7 @@ impl Func {
         }
 
         unsafe {
-            self.call_unchecked(&mut *store, values_vec.as_mut_ptr())?;
+            self.call_unchecked(&mut *store, values_vec.as_mut_ptr()).map_err(anyhow::Error::msg)?;
         }
 
         for ((i, slot), val) in results.iter_mut().enumerate().zip(&values_vec) {
@@ -1461,7 +1465,7 @@ macro_rules! impl_wasm_host_results {
             fn func_type(params: impl Iterator<Item = ValType>) -> FuncType {
                 FuncType::new(
                     params,
-                    std::array::IntoIter::new([$($t::valtype(),)*]),
+                    core::array::IntoIter::new([$($t::valtype(),)*]),
                 )
             }
 
@@ -1582,7 +1586,7 @@ macro_rules! impl_host_abi {
             unsafe fn call(f: impl FnOnce(Self::Retptr) -> Self::Abi) -> Self {
                 // Create space to store all the return values and then invoke
                 // the function.
-                let mut space = std::mem::MaybeUninit::uninit();
+                let mut space = core::mem::MaybeUninit::uninit();
                 let t = f(space.as_mut_ptr());
                 let space = space.assume_init();
 
@@ -1853,7 +1857,7 @@ macro_rules! impl_into_func {
                     enum CallResult<U> {
                         Ok(U),
                         Trap(Box<dyn Error + Send + Sync>),
-                        Panic(Box<dyn std::any::Any + Send>),
+                        Panic(Box<dyn core::any::Any + Send>),
                     }
 
                     // Note that this `result` is intentionally scoped into a
@@ -1871,7 +1875,7 @@ macro_rules! impl_into_func {
                         let func = &*(state as *const _ as *const F);
 
                         let ret = {
-                            panic::catch_unwind(AssertUnwindSafe(|| {
+                            let closure = || {
                                 if let Err(trap) = caller.store.0.call_hook(CallHook::CallingHost) {
                                     return R::fallible_from_trap(trap);
                                 }
@@ -1884,7 +1888,16 @@ macro_rules! impl_into_func {
                                     return R::fallible_from_trap(trap);
                                 }
                                 r.into_fallible()
-                            }))
+                            };
+                            #[cfg(feature = "std")] {
+                                panic::catch_unwind(AssertUnwindSafe(closure))
+                            }
+                            #[cfg(target_os = "theseus")] {
+                                theseus_catch_unwind::catch_unwind_with_arg(
+                                    |_: ()| { closure() },
+                                    (), // empty void arg 
+                                )
+                            }
                         };
 
                         // Note that we need to be careful when dealing with traps
@@ -1895,7 +1908,12 @@ macro_rules! impl_into_func {
                         // abnormally from this `match`, e.g. on `Err`, on
                         // cross-store-issues, or if `Ok(Err)` is raised.
                         match ret {
-                            Err(panic) => CallResult::Panic(panic),
+                            Err(panic) => {
+                                #[cfg(target_os = "theseus")]   
+                                let panic = Box::new(panic);
+
+                                CallResult::Panic(panic)
+                            }
                             Ok(ret) => {
                                 // Because the wrapped function is not `unsafe`, we
                                 // can't assume it returned a value that is
@@ -1969,7 +1987,7 @@ macro_rules! impl_into_func {
 
                 let instance = unsafe {
                     crate::trampoline::create_raw_function(
-                        std::slice::from_raw_parts_mut(
+                        core::slice::from_raw_parts_mut(
                             wasm_to_host_shim::<T, F, $($args,)* R> as *mut _,
                             0,
                         ),

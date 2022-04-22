@@ -2,6 +2,7 @@ use crate::store::{InstanceId, StoreOpaque};
 use crate::trampoline::create_handle;
 use crate::{GlobalType, Mutability, Val};
 use anyhow::Result;
+use alloc::{boxed::Box, string::String, vec::Vec};
 use wasmtime_environ::{EntityIndex, Global, GlobalInit, Module, ModuleType, SignatureIndex};
 use wasmtime_runtime::VMFunctionImport;
 

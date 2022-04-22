@@ -1,4 +1,5 @@
-use std::fmt;
+use core::fmt;
+use alloc::{borrow::ToOwned, string::{String, ToString}, vec::Vec};
 use wasmtime_environ::{EntityType, Global, Memory, Table, WasmFuncType, WasmType};
 use wasmtime_jit::TypeTables;
 

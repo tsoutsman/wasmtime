@@ -5,9 +5,12 @@ use crate::{
 use crate::{Engine, ModuleType};
 use anyhow::{bail, Context, Result};
 use std::fs;
-use std::mem;
+use core::mem;
+#[cfg(feature = "std")]
 use std::path::Path;
-use std::sync::Arc;
+#[cfg(target_os = "theseus")]
+use theseus_path_std::Path;
+use alloc::{sync::Arc, vec::Vec};
 use wasmparser::{Parser, ValidPayload, Validator};
 use wasmtime_environ::{ModuleEnvironment, ModuleIndex, PrimaryMap};
 use wasmtime_jit::{CompiledModule, CompiledModuleInfo, MmapVec, TypeTables};
@@ -600,12 +603,12 @@ impl Module {
 
         let mut functions = Vec::new();
         for payload in Parser::new(0).parse_all(binary) {
-            if let ValidPayload::Func(a, b) = validator.payload(&payload?)? {
+            if let ValidPayload::Func(a, b) = validator.payload(&payload.map_err(anyhow::Error::msg)?).map_err(anyhow::Error::msg)? {
                 functions.push((a, b));
             }
         }
 
-        engine.run_maybe_parallel(functions, |(mut validator, body)| validator.validate(&body))?;
+        engine.run_maybe_parallel(functions, |(mut validator, body)| validator.validate(&body)).map_err(anyhow::Error::msg)?;
         Ok(())
     }
 
@@ -943,9 +946,9 @@ fn _assert_send_sync() {
 struct HashedEngineCompileEnv<'a>(&'a Engine);
 
 #[cfg(all(feature = "cache", compiler))]
-impl std::hash::Hash for HashedEngineCompileEnv<'_> {
-    fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
-        use std::collections::BTreeMap;
+impl core::hash::Hash for HashedEngineCompileEnv<'_> {
+    fn hash<H: core::hash::Hasher>(&self, hasher: &mut H) {
+        use alloc::collections::BTreeMap;
 
         // Hash the compiler's state based on its target and configuration.
         let compiler = self.0.compiler();

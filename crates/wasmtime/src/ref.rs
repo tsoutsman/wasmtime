@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use crate::AsContextMut;
-use std::any::Any;
+use core::any::Any;
 use wasmtime_runtime::VMExternRef;
 
 /// Represents an opaque reference to any data within WebAssembly.

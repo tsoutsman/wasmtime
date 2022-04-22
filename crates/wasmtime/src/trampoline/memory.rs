@@ -3,8 +3,8 @@ use crate::store::{InstanceId, StoreOpaque};
 use crate::trampoline::create_handle;
 use crate::MemoryType;
 use anyhow::{anyhow, Result};
-use std::convert::TryFrom;
-use std::sync::Arc;
+use core::convert::TryFrom;
+use alloc::{boxed::Box, string::String, sync::Arc};
 use wasmtime_environ::{EntityIndex, MemoryPlan, MemoryStyle, Module, WASM_PAGE_SIZE};
 use wasmtime_runtime::{RuntimeLinearMemory, RuntimeMemoryCreator, VMMemoryDefinition};
 

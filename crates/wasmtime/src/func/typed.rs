@@ -2,9 +2,9 @@ use super::{invoke_wasm_and_catch_traps, HostAbi};
 use crate::store::{AutoAssertNoGc, StoreOpaque};
 use crate::{AsContextMut, ExternRef, Func, StoreContextMut, Trap, ValType};
 use anyhow::{bail, Result};
-use std::marker;
-use std::mem::{self, MaybeUninit};
-use std::ptr;
+use core::marker;
+use core::mem::{self, MaybeUninit};
+use core::ptr;
 use wasmtime_runtime::{VMContext, VMFunctionBody};
 
 /// A statically typed WebAssembly function.

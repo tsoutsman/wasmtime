@@ -7,8 +7,8 @@ use crate::{
     Memory, Module, StoreContextMut, Table, Trap, TypedFunc,
 };
 use anyhow::{anyhow, bail, Context, Error, Result};
-use std::mem;
-use std::sync::Arc;
+use core::mem;
+use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use wasmtime_environ::{
     EntityIndex, EntityType, FuncIndex, GlobalIndex, Initializer, InstanceIndex, MemoryIndex,
     ModuleIndex, PrimaryMap, TableIndex,
@@ -18,6 +18,11 @@ use wasmtime_runtime::{
     Imports, InstanceAllocationRequest, InstantiationError, VMContext, VMFunctionBody,
     VMFunctionImport, VMGlobalImport, VMMemoryImport, VMTableImport,
 };
+
+#[cfg(feature = "std")]
+type IndexMap<K, V> = indexmap::IndexMap<K, V>;
+#[cfg(not(feature = "std"))]
+type IndexMap<K, V> = indexmap::IndexMap<K, V, hashbrown::hash_map::DefaultHashBuilder>;
 
 /// An instantiated WebAssembly module.
 ///
@@ -54,7 +59,7 @@ pub(crate) enum InstanceData {
 
     /// This variant is used for synthetically created instances via `Linker`
     /// APIs. This is only used for the module linking proposal at this time.
-    Synthetic(Arc<indexmap::IndexMap<String, Extern>>),
+    Synthetic(Arc<IndexMap<String, Extern>>),
 }
 
 impl Instance {
@@ -736,7 +741,9 @@ impl<'a> Instantiator<'a> {
                         host_state: Box::new(Instance(instance_to_be)),
                         store: Some(store.traitobj()),
                         wasm_data: compiled_module.wasm_data(),
-                    })?;
+                    })
+                    .map_err(anyhow::Error::msg)?;
+
 
             // The instance still has lots of setup, for example
             // data/elements/start/etc. This can all fail, but even on failure
@@ -818,8 +825,8 @@ impl<'a> Instantiator<'a> {
                 )
                 .map_err(|e| -> Error {
                     match e {
-                        InstantiationError::Trap(trap) => Trap::from_runtime(trap).into(),
-                        other => other.into(),
+                        InstantiationError::Trap(trap) => anyhow!(Trap::from_runtime(trap)),
+                        other => anyhow!(other),
                     }
                 })?;
 
@@ -852,7 +859,7 @@ impl<'a> Instantiator<'a> {
                 >(f.anyfunc.as_ref().func_ptr.as_ptr())(
                     f.anyfunc.as_ref().vmctx, vmctx
                 )
-            })?;
+            }).map_err(anyhow::Error::msg)?;
         }
         Ok(())
     }
@@ -924,7 +931,7 @@ impl<'a> ImportsBuilder<'a> {
 pub struct InstancePre<T> {
     module: Module,
     items: Vec<Definition>,
-    _marker: std::marker::PhantomData<fn() -> T>,
+    _marker: core::marker::PhantomData<fn() -> T>,
 }
 
 impl<T> InstancePre<T> {
@@ -937,7 +944,7 @@ impl<T> InstancePre<T> {
         Ok(InstancePre {
             module: module.clone(),
             items,
-            _marker: std::marker::PhantomData,
+            _marker: core::marker::PhantomData,
         })
     }
 

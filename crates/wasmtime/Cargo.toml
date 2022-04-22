@@ -13,31 +13,39 @@ edition = "2018"
 rustdoc-args = ["--cfg", "nightlydoc"]
 
 [dependencies]
-wasmtime-runtime = { path = "../runtime", version = "0.30.0" }
-wasmtime-environ = { path = "../environ", version = "0.30.0" }
-wasmtime-jit = { path = "../jit", version = "0.30.0" }
+wasmtime-runtime = { path = "../runtime", version = "0.30.0", default-features = false }
+wasmtime-environ = { path = "../environ", version = "0.30.0", default-features = false }
+wasmtime-jit = { path = "../jit", version = "0.30.0", default-features = false }
 wasmtime-cache = { path = "../cache", version = "0.30.0", optional = true }
 wasmtime-fiber = { path = "../fiber", version = "0.30.0", optional = true }
 wasmtime-cranelift = { path = "../cranelift", version = "0.30.0", optional = true }
 target-lexicon = { version = "0.12.0", default-features = false }
-wasmparser = "0.81"
-anyhow = "1.0.19"
-region = "2.2.0"
-libc = "0.2"
+wasmparser = { version = "0.81", default-features = false }
+anyhow = { version = "1.0.19", default-features = false }
+region = "3.0.0"
+libc = { version = "0.2", default-features = false }
 cfg-if = "1.0"
-backtrace = "0.3.61"
+backtrace = { version = "0.3.61", default-features = false }
 rustc-demangle = "0.1.16"
-cpp_demangle = "0.3.2"
+cpp_demangle = { version = "0.3.2", default-features = false, features = ["alloc"] }
 log = "0.4.8"
 wat = { version = "1.0.36", optional = true }
-serde = { version = "1.0.94", features = ["derive"] }
-bincode = "1.2.1"
+serde = { version = "1.0.94", default-features = false, features = ["derive", "alloc"] }
+### Use the newest version of `bincode` from GitHub because it supports no_std
+bincode = { version = "2.0.0-rc.1", default-features = false, features = ["alloc", "serde_alloc", "derive"] }
 indexmap = "1.6"
 paste = "1.0.3"
 psm = "0.1.11"
-lazy_static = "1.4"
+lazy_static = { version = "1.4", features = ["spin_no_std"] }
 rayon = { version = "1.0", optional = true }
-object = { version = "0.26", default-features = false, features = ['read_core', 'elf'] }
+object = { version = "0.27.1", default-features = false, features = ['read_core', 'elf'] }
+hashbrown = { version = "0.11.2", features = ["ahash"], default-features = false }
+core2 = { version = "0.4.0", default-features = false, features = ["alloc", "nightly"] }
+
+[target.'cfg(target_os = "theseus")'.dependencies]
+theseus_mutex = { path = "../../../../kernel/mutex_sleep", package = "mutex_sleep" }
+theseus_path_std = { path = "../../../../ports/path_std", package = "path_std" }
+theseus_catch_unwind = { path = "../../../../kernel/catch_unwind", package = "catch_unwind" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = "0.3.7"
@@ -51,7 +59,9 @@ wasi-cap-std-sync = { path = "../wasi-common/cap-std-sync" }
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ['async', 'cache', 'wat', 'jitdump', 'parallel-compilation', 'cranelift']
+default = ['std', 'async', 'cache', 'wat', 'jitdump', 'parallel-compilation', 'cranelift']
+std = ["anyhow/std", "backtrace/std", "wasmtime-runtime/std", "wasmtime-environ/std", "wasmparser/std", "cpp_demangle/std", "bincode/std", "serde/std"]
+
 
 # An on-by-default feature enabling runtime compilation of WebAssembly modules
 # with the Cranelift compiler. Cranelift is the default compilation backend of

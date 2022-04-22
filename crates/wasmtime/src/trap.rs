@@ -1,9 +1,14 @@
 use crate::module::GlobalModuleRegistry;
 use crate::FrameInfo;
 use backtrace::Backtrace;
-use std::fmt;
-use std::sync::Arc;
+use core::fmt;
+use alloc::{boxed::Box, string::{String, ToString}, sync::Arc, vec::Vec};
 use wasmtime_environ::TrapCode as EnvTrapCode;
+
+#[cfg(feature = "std")]
+use std::error::Error;
+#[cfg(not(feature = "std"))]
+use core2::error::Error;
 
 /// A struct representing an aborted instruction execution, with a message
 /// indicating the cause.
@@ -22,7 +27,7 @@ enum TrapReason {
     I32Exit(i32),
 
     /// A structured error describing a trap.
-    Error(Box<dyn std::error::Error + Send + Sync>),
+    Error(Box<dyn Error + Send + Sync>),
 
     /// A specific code for a trap triggered while executing WASM.
     InstructionTrap(TrapCode),
@@ -372,8 +377,8 @@ impl fmt::Display for Trap {
     }
 }
 
-impl std::error::Error for Trap {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl Error for Trap {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self.inner.reason {
             TrapReason::Error(e) => e.source(),
             TrapReason::I32Exit(_) | TrapReason::Message(_) | TrapReason::InstructionTrap(_) => {
@@ -383,14 +388,15 @@ impl std::error::Error for Trap {
     }
 }
 
+#[cfg(feature = "std")]
 impl From<anyhow::Error> for Trap {
     fn from(e: anyhow::Error) -> Trap {
-        Box::<dyn std::error::Error + Send + Sync>::from(e).into()
+        Box::<dyn Error + Send + Sync>::from(e).into()
     }
 }
 
-impl From<Box<dyn std::error::Error + Send + Sync>> for Trap {
-    fn from(e: Box<dyn std::error::Error + Send + Sync>) -> Trap {
+impl From<Box<dyn Error + Send + Sync>> for Trap {
+    fn from(e: Box<dyn Error + Send + Sync>) -> Trap {
         // If the top-level error is already a trap, don't be redundant and just return it.
         if let Some(trap) = e.downcast_ref::<Trap>() {
             trap.clone()

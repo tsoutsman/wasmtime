@@ -2,11 +2,11 @@ use crate::memory::MemoryCreator;
 use crate::trampoline::MemoryCreatorProxy;
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use std::cmp;
-use std::fmt;
+use core::cmp;
+use core::fmt;
 #[cfg(feature = "cache")]
 use std::path::Path;
-use std::sync::Arc;
+use alloc::{boxed::Box, string::String, sync::Arc};
 use wasmparser::WasmFeatures;
 #[cfg(feature = "cache")]
 use wasmtime_cache::CacheConfig;
@@ -423,7 +423,7 @@ impl Config {
     #[cfg(compiler)]
     #[cfg_attr(nightlydoc, doc(cfg(feature = "cranelift")))] // see build.rs
     pub fn target(&mut self, target: &str) -> Result<&mut Self> {
-        use std::str::FromStr;
+        use core::str::FromStr;
         self.compiler
             .target(target_lexicon::Triple::from_str(target).map_err(|e| anyhow::anyhow!(e))?)?;
 
@@ -537,11 +537,16 @@ impl Config {
         self.tunables.parse_wasm_debuginfo = match enable {
             WasmBacktraceDetails::Enable => true,
             WasmBacktraceDetails::Disable => false,
+            #[cfg(feature = "std")]
             WasmBacktraceDetails::Environment => {
                 self.wasm_backtrace_details_env_used = true;
                 std::env::var("WASMTIME_BACKTRACE_DETAILS")
                     .map(|s| s == "1")
                     .unwrap_or(false)
+            }
+            #[cfg(not(feature = "std"))]
+            WasmBacktraceDetails::Environment => {
+                todo!("Theseus doesn't support WasmBacktraceDetails::Environment");
             }
         };
         self

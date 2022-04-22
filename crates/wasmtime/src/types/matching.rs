@@ -3,6 +3,7 @@ use crate::linker::Definition;
 use crate::store::StoreOpaque;
 use crate::{signatures::SignatureCollection, Engine, Extern};
 use anyhow::{bail, Context, Result};
+use alloc::{format, string::{String, ToString}, vec::Vec};
 use wasmtime_environ::{
     EntityType, Global, InstanceTypeIndex, Memory, ModuleTypeIndex, SignatureIndex, Table,
     WasmFuncType, WasmType,

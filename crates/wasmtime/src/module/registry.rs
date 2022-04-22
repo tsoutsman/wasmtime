@@ -1,10 +1,16 @@
 //! Implements a registry of modules for a store.
 
 use crate::{signatures::SignatureCollection, Module};
+#[cfg(feature = "std")]
 use std::{
     collections::BTreeMap,
     sync::{Arc, RwLock},
 };
+#[cfg(not(feature = "std"))]
+use alloc::{collections::BTreeMap, string::{String, ToString}, sync::Arc, vec::Vec};
+#[cfg(target_os = "theseus")]
+use theseus_mutex::RwLockSleep as RwLock;
+
 use wasmtime_environ::{EntityRef, FilePos, StackMap, TrapCode};
 use wasmtime_jit::CompiledModule;
 use wasmtime_runtime::{ModuleInfo, VMCallerCheckedAnyfunc, VMTrampoline};

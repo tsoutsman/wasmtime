@@ -7,13 +7,21 @@ use crate::{
 };
 use anyhow::{anyhow, bail, Context, Error, Result};
 use log::warn;
+#[cfg(feature = "std")]
 use std::collections::hash_map::{Entry, HashMap};
+#[cfg(not(feature = "std"))]
+use hashbrown::{HashMap, hash_map::Entry};
 #[cfg(feature = "async")]
-use std::future::Future;
-use std::marker;
+use core::future::Future;
+use core::marker;
 #[cfg(feature = "async")]
-use std::pin::Pin;
-use std::sync::Arc;
+use core::pin::Pin;
+use alloc::{borrow::ToOwned, format, string::{String, ToString}, sync::Arc, vec::Vec};
+
+#[cfg(feature = "std")]
+type IndexMap<K, V> = indexmap::IndexMap<K, V>;
+#[cfg(not(feature = "std"))]
+type IndexMap<K, V> = indexmap::IndexMap<K, V, hashbrown::hash_map::DefaultHashBuilder>;
 
 /// Structure used to link wasm modules/instances together.
 ///
@@ -115,7 +123,7 @@ struct ImportKey {
 pub(crate) enum Definition {
     Extern(Extern),
     HostFunc(Arc<HostFunc>),
-    Instance(Arc<indexmap::IndexMap<String, Definition>>),
+    Instance(Arc<IndexMap<String, Definition>>),
 }
 
 macro_rules! generate_wrap_async_func {
@@ -1161,7 +1169,11 @@ impl<T> Linker<T> {
             // it each time a module is instantiated. For now though while the
             // module linking proposal is under development this should hopefully
             // suffice.
+            #[cfg(feature = "std")]
             let mut map = indexmap::IndexMap::new();
+            #[cfg(not(feature = "std"))]
+            let mut map = indexmap::IndexMap::with_hasher(hashbrown::hash_map::DefaultHashBuilder::new());
+
             for export in t.exports() {
                 let item = self._get(import.module(), Some(export.name()))?;
                 map.insert(export.name().to_string(), item.clone());
