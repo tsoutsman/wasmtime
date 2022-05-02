@@ -1875,7 +1875,7 @@ macro_rules! impl_into_func {
                         let func = &*(state as *const _ as *const F);
 
                         let ret = {
-                            let closure = || {
+                            let mut closure = || {
                                 if let Err(trap) = caller.store.0.call_hook(CallHook::CallingHost) {
                                     return R::fallible_from_trap(trap);
                                 }

@@ -22,7 +22,7 @@ use std::path::Path;
 #[derive(Debug)]
 pub struct File; 
 #[cfg(target_os = "theseus")]
-use theseus_path_std::Path;
+use theseus_std::path::Path;
 
 
 /// A simple struct consisting of a page-aligned pointer to page-aligned

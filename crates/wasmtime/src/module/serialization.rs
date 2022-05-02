@@ -58,7 +58,7 @@ use core::convert::TryFrom;
 #[cfg(feature = "std")]
 use std::path::Path;
 #[cfg(target_os = "theseus")]
-use theseus_path_std::Path;
+use theseus_std::path::Path;
 use core::str::FromStr;
 use alloc::{format, string::String, sync::Arc, vec, vec::Vec};
 use wasmtime_environ::{Compiler, FlagValue, Tunables};
@@ -373,7 +373,7 @@ impl<'a> SerializedModule<'a> {
         #[cfg(feature = "std")]
         bincode::serialize_into(&mut ret, &self.metadata)?;
         #[cfg(not(feature = "std"))] {
-            let metadata_bytes = bincode::serde::encode_to_vec(&self.metadata, bincode::config::legacy())
+            let mut metadata_bytes = bincode::serde::encode_to_vec(&self.metadata, bincode::config::legacy())
                 .map_err(|e| anyhow!("{}", e))?;
             ret.append(&mut metadata_bytes);
         }

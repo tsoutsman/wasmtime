@@ -4,12 +4,15 @@ use crate::{
 };
 use crate::{Engine, ModuleType};
 use anyhow::{bail, Context, Result};
+#[cfg(feature = "std")]
 use std::fs;
+#[cfg(target_os = "theseus")]
+use theseus_std::fs;
 use core::mem;
 #[cfg(feature = "std")]
 use std::path::Path;
 #[cfg(target_os = "theseus")]
-use theseus_path_std::Path;
+use theseus_std::path::Path;
 use alloc::{sync::Arc, vec::Vec};
 use wasmparser::{Parser, ValidPayload, Validator};
 use wasmtime_environ::{ModuleEnvironment, ModuleIndex, PrimaryMap};

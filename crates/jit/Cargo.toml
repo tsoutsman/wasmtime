@@ -48,7 +48,7 @@ rsix = { version = "0.23.0", optional = true }
 core2 = { version = "0.4.0", default-features = false, features = ["alloc", "nightly"] }
 thiserror_core2 = { version = "2.0.0", default-features = false }
 theseus_external_unwind_info = { path = "../../../../kernel/external_unwind_info", package = "external_unwind_info" }
-theseus_path_std = { path = "../../../../ports/path_std", package = "path_std" }
+theseus_std = { path = "../../../../ports/theseus_std" }
 
 [features]
 default = ["std"]

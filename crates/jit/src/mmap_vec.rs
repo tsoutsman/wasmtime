@@ -4,7 +4,7 @@ use core::ops::{Deref, DerefMut, Range, RangeTo};
 #[cfg(feature = "std")]
 use std::path::Path;
 #[cfg(target_os = "theseus")]
-use theseus_path_std::Path;
+use theseus_std::path::Path;
 use alloc::format;
 use alloc::sync::Arc;
 use wasmtime_runtime::Mmap;
