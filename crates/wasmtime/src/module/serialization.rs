@@ -666,7 +666,7 @@ impl<'a> SerializedModule<'a> {
             bulk_memory,
             module_linking,
             simd,
-            relaxed_simd,
+            relaxed_simd: _,
             threads,
             tail_call,
             deterministic_only,

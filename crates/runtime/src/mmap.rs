@@ -13,16 +13,10 @@ use core::slice;
 use ::alloc::{format, vec::Vec};
 
 #[cfg(feature = "std")]
-use std::fs::File;
-#[cfg(feature = "std")]
-use std::path::Path;
+use std::{fs::File, path::Path};
 
 #[cfg(target_os = "theseus")]
-// use theseus_file::File; // TODO: this
-#[derive(Debug)]
-pub struct File; 
-#[cfg(target_os = "theseus")]
-use theseus_std::path::Path;
+use theseus_std::{fs::File, path::Path};
 
 
 /// A simple struct consisting of a page-aligned pointer to page-aligned
@@ -37,7 +31,7 @@ pub struct Mmap {
     len: usize,
     file: Option<File>,
     #[cfg(target_os = "theseus")]
-    mapping: theseus_memory::MappedPages,
+    _mapping: theseus_memory::MappedPages,
 }
 
 impl Mmap {
@@ -52,7 +46,7 @@ impl Mmap {
             len: 0,
             file: None,
             #[cfg(target_os = "theseus")]
-            mapping: theseus_memory::MappedPages::empty(),
+            _mapping: theseus_memory::MappedPages::empty(),
         }
     }
 
@@ -197,7 +191,7 @@ impl Mmap {
             ptr: mp.start_address().value(),
             len: mapping_size,
             file: None,
-            mapping: mp,
+            _mapping: mp,
         })
     }
 
@@ -476,6 +470,7 @@ impl Drop for Mmap {
     #[cfg(target_os = "theseus")]
     fn drop(&mut self) {
         // do nothing, each field will be dropped and the `MappedPages` auto-unmapped
+        todo!("Mmap::Drop: Theseus doesn't yet properly unmap its MappedPages and the backing File")
     }
 
     #[cfg(not(any(target_os = "theseus", target_os = "windows")))]

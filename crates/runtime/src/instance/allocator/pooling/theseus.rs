@@ -19,7 +19,7 @@ use anyhow::{Context, Result};
 //     Ok(())
 // }
 
-pub fn commit_memory_pages(addr: *mut u8, len: usize) -> Result<()> {
+pub fn commit_memory_pages(_addr: *mut u8, len: usize) -> Result<()> {
     if len == 0 {
         return Ok(());
     }
@@ -32,7 +32,7 @@ pub fn commit_memory_pages(addr: *mut u8, len: usize) -> Result<()> {
     // }
 }
 
-pub fn decommit_memory_pages(addr: *mut u8, len: usize) -> Result<()> {
+pub fn decommit_memory_pages(_addr: *mut u8, _len: usize) -> Result<()> {
     Ok(())
 
     // decommit(addr, len, true)
@@ -43,7 +43,7 @@ pub fn commit_table_pages(_addr: *mut u8, _len: usize) -> Result<()> {
     Ok(())
 }
 
-pub fn decommit_table_pages(addr: *mut u8, len: usize) -> Result<()> {
+pub fn decommit_table_pages(_addr: *mut u8, _len: usize) -> Result<()> {
     Ok(())
     // decommit(addr, len, false)
 }
