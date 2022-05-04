@@ -1229,7 +1229,18 @@ fn enter_wasm<T>(store: &mut StoreContextMut<'_, T>) -> Result<Option<usize>, Tr
         return Ok(None);
     }
 
+    // Note: the `psm` crate technically *should* work on Theseus, 
+    // but it depends on the __stack_chk_fail function which is defined 
+    // by gcc's libssp (and requires linking `-lssp`).
+    // We could probably change `psm`'s compilation flags for Theseus
+    // to get it to work, but since `psm` is only used here
+    // for this one `stack_pointer()` function,
+    // it's easier just to bypass it for Theseus than to get libssp
+    // and `psm` working on Theseus, at least for now.
+    #[cfg(not(target_os = "theseus"))]
     let stack_pointer = psm::stack_pointer() as usize;
+    #[cfg(target_os = "theseus")] 
+    let stack_pointer = stack_pointer();
 
     // Determine the stack pointer where, after which, any wasm code will
     // immediately trap. This is checked on the entry to all wasm functions.
@@ -2162,5 +2173,22 @@ impl FuncKind {
             FuncKind::SharedHost(host) => &host.export,
             FuncKind::Host(host) => &host.export,
         }
+    }
+}
+
+#[cfg(target_os = "theseus")]
+#[naked]
+extern "C" fn stack_pointer() -> usize {
+    // SAFE: just retrieves the current stack pointer value.
+    unsafe {
+        // Code based on `psm` crate: 
+        // <https://github.com/rust-lang/stacker/blob/b36b2a0a7f45255a214864195652f4cec08086d0/psm/src/arch/x86_64.s#L39>
+        core::arch::asm!(
+            "
+            leaq 8(%rsp), %rax
+            retq
+            ",
+            options(att_syntax, noreturn)
+        );
     }
 }

@@ -372,6 +372,7 @@
 #![cfg_attr(not(feature = "default"), allow(dead_code, unused_imports))]
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(target_os = "theseus", feature(naked_functions))]
 
 #![cfg(not(feature = "std"))]
 extern crate alloc;

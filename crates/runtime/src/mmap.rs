@@ -10,7 +10,7 @@ use core::ptr;
 use core::slice;
 
 #[cfg(not(feature = "std"))]
-use ::alloc::{format, vec::Vec};
+use ::alloc::{vec::Vec};
 
 #[cfg(feature = "std")]
 use std::{fs::File, path::Path};
