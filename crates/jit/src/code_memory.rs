@@ -141,6 +141,11 @@ impl CodeMemory {
             let text_offset = ret.text.as_ptr() as usize - ret.mmap.as_ptr() as usize;
             let text_range = text_offset..text_offset + text_mut.len();
             let mut text_section_readwrite = false;
+
+            log::warn!("mmap: {:#X?}", self.mmap);
+            log::warn!("text_range: {:#X?}", text_range);
+            log::warn!("{:X?}", text_mut);
+
             for (offset, r) in text.relocations() {
                 // If the text section was mapped at readonly we need to make it
                 // briefly read/write here as we apply relocations.

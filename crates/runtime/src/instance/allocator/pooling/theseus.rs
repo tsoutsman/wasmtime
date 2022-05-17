@@ -20,6 +20,7 @@ use anyhow::{Context, Result};
 // }
 
 pub fn commit_memory_pages(_addr: *mut u8, len: usize) -> Result<()> {
+    log::trace!("Note: Theseus commit_memory_pages() does nothing");
     if len == 0 {
         return Ok(());
     }
@@ -33,17 +34,20 @@ pub fn commit_memory_pages(_addr: *mut u8, len: usize) -> Result<()> {
 }
 
 pub fn decommit_memory_pages(_addr: *mut u8, _len: usize) -> Result<()> {
+    log::trace!("Note: Theseus decommit_memory_pages() does nothing");
     Ok(())
 
     // decommit(addr, len, true)
 }
 
 pub fn commit_table_pages(_addr: *mut u8, _len: usize) -> Result<()> {
+    log::trace!("Note: Theseus commit_table_pages() does nothing");
     // A no-op as table pages remain READ|WRITE
     Ok(())
 }
 
 pub fn decommit_table_pages(_addr: *mut u8, _len: usize) -> Result<()> {
+    log::trace!("Note: Theseus decommit_table_pages() does nothing");
     Ok(())
     // decommit(addr, len, false)
 }

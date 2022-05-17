@@ -331,6 +331,7 @@ impl Default for InstanceAllocationStrategy {
 }
 
 #[derive(Clone)]
+#[derive(Debug)]
 /// Configure the strategy used for versioning in serializing and deserializing [`crate::Module`].
 pub enum ModuleVersionStrategy {
     /// Use the wasmtime crate's Cargo package version.
@@ -546,7 +547,8 @@ impl Config {
             }
             #[cfg(not(feature = "std"))]
             WasmBacktraceDetails::Environment => {
-                todo!("Theseus doesn't support WasmBacktraceDetails::Environment");
+                self.wasm_backtrace_details_env_used = true;
+                false // TODO: Theseus always disables wasm backtrace details (WasmBacktraceDetails)
             }
         };
         self

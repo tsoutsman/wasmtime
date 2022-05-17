@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Tunable parameters for WebAssembly compilation.
+#[derive(Debug)]
 #[derive(Clone, Hash, Serialize, Deserialize)]
 pub struct Tunables {
     /// For static heaps, the size in wasm pages of the heap protected by bounds checking.

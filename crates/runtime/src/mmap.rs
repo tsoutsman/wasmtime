@@ -31,7 +31,7 @@ pub struct Mmap {
     len: usize,
     file: Option<File>,
     #[cfg(target_os = "theseus")]
-    _mapping: theseus_memory::MappedPages,
+    theseus_mp: spin::Mutex<theseus_memory::MappedPages>,
 }
 
 impl Mmap {
@@ -46,7 +46,7 @@ impl Mmap {
             len: 0,
             file: None,
             #[cfg(target_os = "theseus")]
-            _mapping: theseus_memory::MappedPages::empty(),
+            theseus_mp: spin::Mutex::new(theseus_memory::MappedPages::empty()),
         }
     }
 
@@ -191,7 +191,7 @@ impl Mmap {
             ptr: mp.start_address().value(),
             len: mapping_size,
             file: None,
-            _mapping: mp,
+            theseus_mp: spin::Mutex::new(mp),
         })
     }
 
@@ -327,6 +327,10 @@ impl Mmap {
         assert_le!(len, self.len);
         assert_le!(start, self.len - len);
 
+        #[cfg(target_os = "theseus")] {
+            anyhow::bail!("Theseus doesn't yet support `Mmap::make_accessible()`");
+        }
+
         // Commit the accessible size.
         let ptr = self.ptr as *const u8;
         unsafe {
@@ -440,6 +444,15 @@ impl Mmap {
             }
         }
 
+        // Theseus doesn't currently allow one to remap only *part* of a `MappedPages` region,
+        // so we just remap the entire region at once.
+        #[cfg(target_os = "theseus")] {
+            return self.theseus_mp.lock().remap(
+                &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
+                theseus_memory::EntryFlags::PRESENT | theseus_memory::EntryFlags::WRITABLE, // read/write
+            ).map_err(anyhow::Error::msg);
+        }
+
         // If we're not on Windows or if we're on Windows with an anonymous
         // mapping then we can use the `region` crate.
         region::protect(base, len, region::Protection::READ_WRITE)
@@ -457,6 +470,15 @@ impl Mmap {
             "changing of protections isn't page-aligned",
         );
 
+        // Theseus doesn't currently allow one to remap only *part* of a `MappedPages` region,
+        // so we just remap the entire region at once.
+        #[cfg(target_os = "theseus")] {
+            return self.theseus_mp.lock().remap(
+                &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
+                theseus_memory::EntryFlags::PRESENT, // read and executable (not NO_EXECUTE)
+            ).map_err(anyhow::Error::msg);
+        }
+
         region::protect(
             self.as_ptr().add(range.start),
             range.end - range.start,
@@ -470,7 +492,7 @@ impl Drop for Mmap {
     #[cfg(target_os = "theseus")]
     fn drop(&mut self) {
         // do nothing, each field will be dropped and the `MappedPages` auto-unmapped
-        todo!("Mmap::Drop: Theseus doesn't yet properly unmap its MappedPages and the backing File")
+        log::warn!("Mmap::Drop: Theseus doesn't yet properly unmap its MappedPages and the backing File")
     }
 
     #[cfg(not(any(target_os = "theseus", target_os = "windows")))]

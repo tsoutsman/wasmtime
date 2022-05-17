@@ -19,6 +19,7 @@ use wasmtime_runtime::Mmap;
 ///
 /// An `MmapVec` is an owned value which means that owners have the ability to
 /// get exclusive access to the underlying bytes, enabling mutation.
+#[derive(Debug)]
 pub struct MmapVec {
     mmap: Arc<Mmap>,
     range: Range<usize>,
