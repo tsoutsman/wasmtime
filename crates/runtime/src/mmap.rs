@@ -492,7 +492,7 @@ impl Drop for Mmap {
     #[cfg(target_os = "theseus")]
     fn drop(&mut self) {
         // do nothing, each field will be dropped and the `MappedPages` auto-unmapped
-        log::warn!("Mmap::Drop: Theseus doesn't yet properly unmap its MappedPages and the backing File")
+        log::warn!("Mmap::Drop: Theseus doesn't yet properly unmap its MappedPages and the backing File");
     }
 
     #[cfg(not(any(target_os = "theseus", target_os = "windows")))]

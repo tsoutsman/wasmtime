@@ -210,18 +210,6 @@ pub struct SerializedModule<'a> {
     metadata: Metadata<'a>,
 }
 
-/// For testing and debugging bincode decode/deserialization of a .cwasm file.
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
-struct MetadataKevin {
-    target: String,
-    shared_flags: BTreeMap<String, FlagValue>,
-    isa_flags: BTreeMap<String, FlagValue>,
-    tunables: Tunables,
-    features: WasmFeatures,
-    // module_upvars: Vec<SerializedModuleUpvar>,
-}
-
 #[derive(Serialize, Deserialize)]
 struct Metadata<'a> {
     target: String,
@@ -473,91 +461,12 @@ impl<'a> SerializedModule<'a> {
             }
             ModuleVersionStrategy::None => { /* ignore the version info, accept all */ }
         }
-
-        log::info!("version_strat: {:?}", version_strat);
-        log::info!("metadata slice len: {}, version_len: {}", metadata.len(), version_len);
-        log::info!("artifacts: {:?}", artifacts);
-
-        // Attempt 1: decode_from_slice, legacy
-        let metadata_kevin = bincode::serde::decode_from_slice::<MetadataKevin, _>(&metadata[1 + version_len..], bincode::config::legacy())
-            .map(|(retval, _bytes_read)| {
-                log::info!("Attempt 1: bytes_read: {}, metadata: {:#?}", _bytes_read, retval);   
-                retval
-            })
-            .map_err(|e| {
-                log::error!("Attempt 1: {:?}", e);
-                anyhow!("{:?}", e)
-            })
-            .context("deserialize compilation artifacts");
-        
-        let upvars = bincode::serde::decode_from_slice::<Vec<SerializedModuleUpvar>, _>(&metadata[1 + version_len + 1277..], bincode::config::legacy())
-            .map(|(retval, _bytes_read)| {
-                log::info!("Attempt 1: bytes_read: {}, upvars: {:#?}", _bytes_read, retval);   
-                retval
-            })
-            .map_err(|e| {
-                log::error!("Attempt 1: {:?}", e);
-                anyhow!("{:?}", e)
-            });
-
-        // Attempt 2: decode_borrowed_from_slice, legacy
-        let metadata_kevin = bincode::serde::decode_borrowed_from_slice::<MetadataKevin, _>(&metadata[1 + version_len..], bincode::config::legacy())
-            .map(|decoded_metadata| {
-                log::info!("Attempt 2: Decoded metadata: {:#?}", decoded_metadata);
-                decoded_metadata
-            })
-            .map_err(|e| {
-                log::error!("Attempt 2: {:?}", e);
-                anyhow!("{:?}", e)
-            })
-            .context("deserialize compilation artifacts");
-
-        let upvars2 = bincode::serde::decode_borrowed_from_slice::<Vec<SerializedModuleUpvar>, _>(&metadata[1 + version_len + 1277..], bincode::config::legacy())
-            .map(|retval| {
-                log::info!("Attempt 2: upvars: {:#?}", retval);   
-                retval
-            })
-            .map_err(|e| {
-                log::error!("Attempt 2: {:?}", e);
-                anyhow!("{:?}", e)
-            });
-
-        // Attempt 3: decode_from_slice, standard
-        let metadata_kevin = bincode::serde::decode_from_slice::<MetadataKevin, _>(&metadata[1 + version_len..], bincode::config::standard())
-            .map(|(retval, _bytes_read)| {
-                log::info!("Attempt 3: bytes_read: {}, metadata: {:#?}", _bytes_read, retval);   
-                retval
-            })
-            .map_err(|e| {
-                log::error!("Attempt 3: {:?}", e);
-                anyhow!("{:?}", e)
-            })
-            .context("deserialize compilation artifacts");
-
-        // Attempt 4: decode_borrowed_from_slice, standard
-        let metadata_kevin = bincode::serde::decode_borrowed_from_slice::<MetadataKevin, _>(&metadata[1 + version_len..], bincode::config::standard())
-            // .map(|(retval, _bytes_read)| {
-            //     log::info!("bytes_read: {}, metadata target: {:?}", _bytes_read, retval.target);   
-            //     retval
-            // })
-            .map(|decoded_metadata| {
-                log::info!("Attempt 4: Decoded metadata: {:#?}", decoded_metadata);
-                decoded_metadata
-            })
-            .map_err(|e| {
-                log::error!("Attempt 4: {:?}", e);
-                anyhow!("{:?}", e)
-            })
-            .context("deserialize compilation artifacts");
-
         
         let metadata = bincode::serde::decode_from_slice::<Metadata, _>(&metadata[1 + version_len..], bincode::config::legacy())
             .map(|(retval, _bytes_read)| {
-                log::info!("Final: bytes_read: {}, metadata target: {:?}", _bytes_read, retval.target);   
                 retval
             })
             .map_err(|e| {
-                log::error!("Final: {:?}", e);
                 anyhow!("{:?}", e)
             })
             .context("deserialize compilation artifacts")?;

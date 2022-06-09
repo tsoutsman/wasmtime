@@ -2393,14 +2393,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "path_std"
-version = "0.1.0"
-dependencies = [
- "core2 0.3.3",
- "task",
-]
-
-[[package]]
 name = "peeking_take_while"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4210,6 +4202,7 @@ dependencies = [
  "serde",
  "target-lexicon",
  "tempfile",
+ "theseus_std",
  "wasi-cap-std-sync",
  "wasmparser",
  "wasmtime-cache",
@@ -4434,6 +4427,7 @@ dependencies = [
  "rsix",
  "serde",
  "target-lexicon",
+ "theseus_std",
  "thiserror",
  "wasmparser",
  "wasmtime-environ",
@@ -4460,10 +4454,10 @@ dependencies = [
  "memory",
  "more-asserts",
  "mutex_sleep",
- "path_std",
  "rand 0.8.3",
  "region 3.0.0",
  "spin 0.9.0",
+ "theseus_std",
  "thiserror_core2",
  "thread_local_macro",
  "userfaultfd",
