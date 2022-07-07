@@ -32,7 +32,7 @@ log = "0.4.8"
 wat = { version = "1.0.36", optional = true }
 serde = { version = "1.0.94", default-features = false, features = ["derive", "alloc"] }
 ### Use the newest version of `bincode` from GitHub because it supports no_std
-bincode = { version = "2.0.0-rc.1", default-features = false, features = ["alloc", "serde_alloc", "derive"] }
+bincode = { version = "2.0.0-rc.1", default-features = false, features = ["alloc", "serde", "derive"] }
 indexmap = "1.6"
 paste = "1.0.3"
 lazy_static = { version = "1.4", features = ["spin_no_std"] }

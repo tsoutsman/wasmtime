@@ -26,7 +26,7 @@ serde = { version = "1.0.94", default-features = false, features = ["derive", "a
 addr2line = { version = "0.16.0", default-features = false }
 ittapi-rs = { version = "0.1.5", optional = true  }
 ### Use the newest version of `bincode` from GitHub because it supports no_std
-bincode = { version = "2.0.0-rc.1", default-features = false, features = ["alloc", "serde_alloc", "derive"] }
+bincode = { version = "2.0.0-rc.1", default-features = false, features = ["alloc", "serde", "derive"] }
 ###
 ### NOTE: we *should* be able to include these dependencies here for non-Theseus builds
 ###       but I can't get cargo to build it with the correct features if these are here.
