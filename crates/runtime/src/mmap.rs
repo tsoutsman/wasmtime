@@ -1,16 +1,19 @@
 //! Low-level abstraction for allocating and managing zero-filled pages
 //! of memory.
 
-use anyhow::anyhow;
-use anyhow::{Context, Result};
+use anyhow::Result;
+#[cfg(not(target_os = "theseus"))]
+use anyhow::{anyhow, Context};
 use more_asserts::assert_le;
+#[cfg(not(target_os = "theseus"))]
 use core::convert::TryFrom;
 use core::ops::Range;
+#[cfg(not(target_os = "theseus"))]
 use core::ptr;
 use core::slice;
 
 #[cfg(not(feature = "std"))]
-use ::alloc::{vec::Vec};
+use ::alloc::vec::Vec;
 
 #[cfg(feature = "std")]
 use std::{fs::File, path::Path};
@@ -164,7 +167,7 @@ impl Mmap {
 
         #[cfg(target_os = "theseus")]
         {
-            todo!("Mmap::from_file() is unimplemented for Theseus");
+            todo!("Mmap::from_file() is unimplemented for Theseus, {:?}", path);
         }
 
     }
@@ -320,6 +323,7 @@ impl Mmap {
     /// `start` and `len` must be native page-size multiples and describe a range within
     /// `self`'s reserved memory.
     #[cfg(not(target_os = "windows"))]
+    #[allow(unreachable_code)]
     pub fn make_accessible(&mut self, start: usize, len: usize) -> Result<()> {
         let page_size = region::page::size();
         assert_eq!(start & (page_size - 1), 0);
@@ -413,6 +417,7 @@ impl Mmap {
     }
 
     /// Makes the specified `range` within this `Mmap` to be read/write.
+    #[allow(unreachable_code)]
     pub unsafe fn make_writable(&self, range: Range<usize>) -> Result<()> {
         assert!(range.start <= self.len());
         assert!(range.end <= self.len());
@@ -447,10 +452,13 @@ impl Mmap {
         // Theseus doesn't currently allow one to remap only *part* of a `MappedPages` region,
         // so we just remap the entire region at once.
         #[cfg(target_os = "theseus")] {
-            return self.theseus_mp.lock().remap(
-                &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
-                theseus_memory::EntryFlags::PRESENT | theseus_memory::EntryFlags::WRITABLE, // read/write
-            ).map_err(anyhow::Error::msg);
+            log::trace!("Mmap::make_writable(base: {:#X}, len: {:#X}", base as usize, len);
+            return self.theseus_mp
+                .lock()
+                .remap(
+                    &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
+                    theseus_memory::EntryFlags::PRESENT | theseus_memory::EntryFlags::WRITABLE, // read/write
+                ).map_err(anyhow::Error::msg);
         }
 
         // If we're not on Windows or if we're on Windows with an anonymous
@@ -461,6 +469,7 @@ impl Mmap {
     }
 
     /// Makes the specified `range` within this `Mmap` to be read/execute.
+    #[allow(unreachable_code)]
     pub unsafe fn make_executable(&self, range: Range<usize>) -> Result<()> {
         assert!(range.start <= self.len());
         assert!(range.end <= self.len());

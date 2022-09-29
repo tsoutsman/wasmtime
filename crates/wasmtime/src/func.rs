@@ -1476,7 +1476,7 @@ macro_rules! impl_wasm_host_results {
             fn func_type(params: impl Iterator<Item = ValType>) -> FuncType {
                 FuncType::new(
                     params,
-                    core::array::IntoIter::new([$($t::valtype(),)*]),
+                    IntoIterator::into_iter([$($t::valtype(),)*]),
                 )
             }
 
