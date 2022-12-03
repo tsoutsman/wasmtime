@@ -188,7 +188,7 @@ impl Mmap {
 
         // Theseus doesn't do demand paging nor split mappings into multiple regions with different permissions,
         // so we just reserve the entire `mapping_size` now as read-write.
-        let mp = theseus_memory::create_mapping(mapping_size, theseus_memory::EntryFlags::WRITABLE)
+        let mp = theseus_memory::create_mapping(mapping_size, theseus_memory::PteFlags::new().writable(true))
             .map_err(anyhow::Error::msg)?;
         Ok(Self {
             ptr: mp.start_address().value(),
@@ -453,12 +453,12 @@ impl Mmap {
         // so we just remap the entire region at once.
         #[cfg(target_os = "theseus")] {
             log::trace!("Mmap::make_writable(base: {:#X}, len: {:#X}", base as usize, len);
-            return self.theseus_mp
-                .lock()
-                .remap(
-                    &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
-                    theseus_memory::EntryFlags::PRESENT | theseus_memory::EntryFlags::WRITABLE, // read/write
-                ).map_err(anyhow::Error::msg);
+            let mut mp = self.theseus_mp.lock();
+            let new_flags = mp.flags().valid(true).writable(true); // read+write
+            return mp.remap(
+                &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
+                new_flags,
+            ).map_err(anyhow::Error::msg);
         }
 
         // If we're not on Windows or if we're on Windows with an anonymous
@@ -482,9 +482,11 @@ impl Mmap {
         // Theseus doesn't currently allow one to remap only *part* of a `MappedPages` region,
         // so we just remap the entire region at once.
         #[cfg(target_os = "theseus")] {
-            return self.theseus_mp.lock().remap(
+            let mut mp = self.theseus_mp.lock();
+            let new_flags = mp.flags().valid(true).executable(true); // read+executable
+            return mp.remap(
                 &mut theseus_memory::get_kernel_mmi_ref().unwrap().lock().page_table,
-                theseus_memory::EntryFlags::PRESENT, // read and executable (not NO_EXECUTE)
+                new_flags,
             ).map_err(anyhow::Error::msg);
         }
 
