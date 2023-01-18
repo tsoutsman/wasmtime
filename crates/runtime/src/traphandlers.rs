@@ -20,7 +20,7 @@ use spin::Once;
 #[cfg(target_os = "theseus")]
 use thread_local_macro::thread_local;
 #[cfg(target_os = "theseus")]
-use theseus_task::{KillReason, PanicInfoOwned};
+use theseus_scheduler::{KillReason, PanicInfoOwned};
 
 pub use self::tls::{tls_eager_initialize, TlsRestore};
 
