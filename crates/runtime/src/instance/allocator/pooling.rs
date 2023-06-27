@@ -467,7 +467,7 @@ impl InstancePool {
             memory
                 .reset_guard_pages()
                 .expect("failed to reset guard pages");
-            drop(&mut memory); // require mutable on all platforms, not just uffd
+            let _ = &mut memory; // require mutable on all platforms, not just uffd
 
             let size = memory.byte_size();
             drop(memory);
@@ -947,7 +947,7 @@ impl PoolingInstanceAllocator {
         #[cfg(all(feature = "uffd", target_os = "linux"))]
         let _fault_handler = imp::PageFaultHandler::new(&instances)?;
 
-        drop(stack_size); // suppress unused warnings w/o async feature
+        let _ = stack_size; // suppress unused warnings w/o async feature
 
         Ok(Self {
             strategy,

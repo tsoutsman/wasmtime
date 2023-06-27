@@ -222,7 +222,7 @@ impl Drop for VMExternRef {
         atomic::fence(Ordering::Acquire);
 
         // Drop our live reference to `data` before we drop it itself.
-        drop(data);
+        let _ = data;
         unsafe {
             VMExternData::drop_and_dealloc(self.0);
         }

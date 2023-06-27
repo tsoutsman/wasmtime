@@ -315,7 +315,7 @@ where
     T: core::ops::DerefMut<Target = StoreOpaque>,
 {
     pub fn new(mut store: T) -> Self {
-        drop(&mut store);
+        let _ = &mut store;
         #[cfg(debug_assertions)]
         {
             let prev_okay = store.externref_activations_table.set_gc_okay(false);
